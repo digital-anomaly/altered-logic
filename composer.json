@@ -1,0 +1,71 @@
+{
+    "name": "digital-anomaly/altered-logic",
+    "description": "",
+    "keywords": [
+    ],
+    "homepage": "https://github.com/digital-anomaly/altered-logic",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Tim Chandler",
+            "email": "tim@code-distortion.net"
+        }
+    ],
+    "require": {
+        "php": "8.4.*",
+        "code-distortion/backoff": "^0.1.1",
+        "digital-anomaly/schema": "0.1.0",
+        "phpstan/phpdoc-parser": "^2.1"
+    },
+    "require-dev": {
+        "ext-pgsql": "*",
+        "code-distortion/fluent-dotenv": "^0.3.4",
+        "illuminate/database": "^11.42",
+        "infection/infection": "^0.1 | ^0.2 | ^0.3 | ^0.4 | ^0.5 | ^0.6 | ^0.7 | ^0.8 | ^0.9 | ^0.10 | ^0.11 | ^0.12 | ^0.13 | ^0.14 | ^0.15 | ^0.16 | ^0.17 | ^0.18 | ^0.19 | ^0.20 | ^0.21 | ^0.22 | ^0.23 | ^0.24 | ^0.25 | ^0.26 | ^0.27 | ^0.28 | ^0.29",
+        "orchestra/testbench": "^9.10",
+        "phpstan/phpstan": "^0.9 | ^0.10 | ^0.11 | ^0.12 | ^1.0 | ^2.0",
+        "phpstan/phpstan-strict-rules": "^0.9 | ^0.10 | ^0.11 | ^0.12 | ^1.0 | ^2.0",
+        "phpunit/phpunit": "~4.8 | ^5.0 | ^6.0 | ^7.0 | ^8.4 | ^9.0 | ^10.0 | ^11.0 | ^12.0",
+        "slevomat/coding-standard": "^8.18",
+        "squizlabs/php_codesniffer": "^3.11.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "DigitalAnomaly\\AlteredLogic\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DigitalAnomaly\\AlteredLogic\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "infection": "vendor/bin/infection --threads=max --show-mutations --test-framework-options=\"--exclude-group=skip\"",
+        "phpcbf": "vendor/bin/phpcbf",
+        "phpcs": "vendor/bin/phpcs",
+        "phpstan": "vendor/bin/phpstan.phar analyse --level=max",
+        "test": "vendor/bin/phpunit"
+    },
+    "scripts-descriptions": {
+        "infection": "Run Infection tests",
+        "phpcbf": "Run PHP Code Beautifier and Fixer against your application",
+        "phpcs": "Run PHP CodeSniffer against your application",
+        "phpstan": "Run PHPStan static analysis against your application",
+        "test": "Run PHPUnit tests"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "infection/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DigitalAnomaly\\AlteredLogic\\Frameworks\\Laravel\\ServiceProvider"
+            ]
+        }
+    }
+}

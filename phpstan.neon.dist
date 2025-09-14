@@ -1,0 +1,11 @@
+includes:
+  - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+  paths:
+    - src/
+    - tests/
+  level: max
+  parallel:
+    processTimeout: 300.0
+  excludePaths:
+    - /**/ManualTest.php

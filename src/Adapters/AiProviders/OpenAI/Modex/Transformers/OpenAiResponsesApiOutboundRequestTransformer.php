@@ -12,9 +12,12 @@ use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexDialogue;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexSchemas;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexSettings;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ToolTypes\ServerSideTool;
+use DigitalAnomaly\AlteredLogic\Modex\Messages\DeveloperMessage;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\FileMessagePayload;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\FunctionCallResultsMessagePayload;
+use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\FunctionCallsMessagePayload;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\ImageMessagePayload;
+use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\StructuredMessagePayload;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\TextMessagePayload;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\UserMessage;
 use DigitalAnomaly\AlteredLogic\Support\ArrayHelper;
@@ -361,25 +364,35 @@ final class OpenAiResponsesApiOutboundRequestTransformer
         $json = [];
         foreach ($dialogue->unsentMessages as $message) {
 
+            $isInput = $message instanceof DeveloperMessage || $message instanceof UserMessage;
+
             // skip it if it has no payloads
             $payloads = $message->getPayloads();
             if (\count($payloads) === 0) {
                 continue;
             }
 
+            // separate the function call result payloads from the rest
+            $functionCallCallback = fn ($payload) => $payload instanceof FunctionCallsMessagePayload;
             $functionCallResultCallback = fn ($payload) => $payload instanceof FunctionCallResultsMessagePayload;
-            $nonFunctionCallResultCallback = fn ($payload) => !$payload instanceof FunctionCallResultsMessagePayload;
+            $allOtherCallback = fn ($payload)
+                => !$functionCallCallback($payload) && !$functionCallResultCallback($payload);
 
+            $functionCallPayloads = \array_filter($payloads, $functionCallCallback);
             $functionCallResultPayloads = \array_filter($payloads, $functionCallResultCallback);
-            $nonFunctionCallResultPayloads = \array_filter($payloads, $nonFunctionCallResultCallback);
+            $allOtherPayloads = \array_filter($payloads, $allOtherCallback);
+
+            // don't wrap function call payloads
+            $functionCallJson = self::buildJsonForMultiplePayloads($functionCallPayloads, $isInput);
+            $json = \array_merge($json, $functionCallJson);
 
             // don't wrap function call result payloads
-            $functionCallResultJson = self::buildJsonForMultiplePayloads($functionCallResultPayloads);
+            $functionCallResultJson = self::buildJsonForMultiplePayloads($functionCallResultPayloads, $isInput);
             $json = \array_merge($json, $functionCallResultJson);
 
             // wrap the rest in [role = 'xx', content = 'xx']
-            $content =  self::buildSingleTextPayloadJson($nonFunctionCallResultPayloads)
-                ?? self::buildJsonForMultiplePayloads($nonFunctionCallResultPayloads);
+            $content = self::buildSingleTextPayloadJson($allOtherPayloads)
+                ?? self::buildJsonForMultiplePayloads($allOtherPayloads, $isInput);
 
             if ($content !== []) {
                 $role = self::determineMessageRole($message, $messageRoles);
@@ -403,27 +416,39 @@ final class OpenAiResponsesApiOutboundRequestTransformer
      */
     private static function buildSingleTextPayloadJson(array $payloads): ?string
     {
-        if (!self::payloadsAreASingleTextMessage($payloads)) {
+        if (
+            !self::payloadsAreASingleTextMessage($payloads)
+            && !self::payloadsAreASingleStructuredMessage($payloads)
+        ) {
             return null;
         }
 
-        /** @var TextMessagePayload $payload */
+        /** @var TextMessagePayload|StructuredMessagePayload $payload */
         $payload = $payloads[0];
 
-        return $payload->text;
+        return $payload instanceof TextMessagePayload
+            ? $payload->text
+            : $payload->structuredJson; // Note: see below
+
+        // Note: OpenAI Responses API does not currently have a way of representing a structured output when it's used
+        //       as input as part of earlier conversation being passed back to the model.
+        //       @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-input
+        //       As a fallback, this code builds a regular text payload and adds the structured response json as the
+        //       text instead
     }
 
     /**
      * Build the json for multiple payloads.
      *
      * @param MessagePayloadInterface[] $payloads The payloads to build.
+     * @param boolean                   $isInput  Whether the payloads are for an input or output message.
      * @return array<mixed>
      */
-    private static function buildJsonForMultiplePayloads(array $payloads): array
+    private static function buildJsonForMultiplePayloads(array $payloads, bool $isInput): array
     {
         $return = [];
         foreach ($payloads as $payload) {
-            $return = \array_merge($return, self::buildSinglePayloadJson($payload));
+            $return = \array_merge($return, self::buildSinglePayloadJson($payload, $isInput));
         }
 
         return $return;
@@ -436,9 +461,10 @@ final class OpenAiResponsesApiOutboundRequestTransformer
      * an array them.
      *
      * @param MessagePayloadInterface $payload The payload to build.
+     * @param boolean                 $isInput Whether the payload is for an input or output message.
      * @return array<integer,array<string,mixed>>
      */
-    private static function buildSinglePayloadJson(MessagePayloadInterface $payload): array
+    private static function buildSinglePayloadJson(MessagePayloadInterface $payload, bool $isInput): array
     {
         // Supported values are: 'input_text', 'input_image', 'output_text', 'refusal', 'input_file', 'computer_screenshot', and 'summary_text'
 
@@ -446,10 +472,42 @@ final class OpenAiResponsesApiOutboundRequestTransformer
         if ($payload instanceof TextMessagePayload) {
 
             $return = [
-                'type' => 'input_text',
+                'type' => $isInput ? 'input_text' : 'output_text',
                 'text' => $payload->text,
             ];
             return [$return];
+        }
+
+        // StructuredMessagePayload
+        // Note: OpenAI Responses API does not currently have a way of representing a structured output when it's used
+        //       as input as part of earlier conversation being passed back to the model.
+        //       @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-input
+        //       As a fallback, this code builds a regular text payload and adds the structured response json as the
+        //       text instead
+        if ($payload instanceof StructuredMessagePayload) {
+
+            $return = [
+                'type' => $isInput ? 'input_text' : 'output_text',
+                'text' => $payload->structuredJson,
+            ];
+            return [$return];
+        }
+
+        // FunctionCallsMessagePayload
+        if ($payload instanceof FunctionCallsMessagePayload) {
+
+            // may contain several results
+            $return = [];
+            foreach ($payload->calls as $call) {
+                $return[] = [
+                    'type' => 'function_call',
+                    'call_id' => $call->id,
+                    'name' => $call->name,
+                    'arguments' => $call->parametersJson,
+                ];
+            }
+
+            return $return;
         }
 
         // FunctionCallResultsMessagePayload
@@ -474,7 +532,7 @@ final class OpenAiResponsesApiOutboundRequestTransformer
             if ($payload->base64 !== null) {
 
                 $return = [
-                    'type' => 'input_image',
+                    'type' => $isInput ? 'input_image' : 'output_image',
                     'image_url' => "data:{$payload->mimeType};base64,{$payload->base64}",
                     'detail' => $payload->detail,
                 ];
@@ -486,7 +544,7 @@ final class OpenAiResponsesApiOutboundRequestTransformer
             if ($payload->url !== null) {
 
                 $return = [
-                    'type' => 'input_image',
+                    'type' => $isInput ? 'input_image' : 'output_image',
                     'image_url' => $payload->url,
                     'detail' => $payload->detail,
                 ];
@@ -502,7 +560,7 @@ final class OpenAiResponsesApiOutboundRequestTransformer
             if ($payload->base64 !== null) {
 
                 $return = [
-                    'type' => 'input_file',
+                    'type' => $isInput ? 'input_file' : 'output_file',
                     'file_data' => "data:{$payload->mimeType};base64,{$payload->base64}",
                     'filename' => $payload->filename,
                     'detail' => $payload->detail,
@@ -559,6 +617,26 @@ final class OpenAiResponsesApiOutboundRequestTransformer
 
         $payload = $payloads[0];
         if (!$payload instanceof TextMessagePayload) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if the payloads contain only one single structured payload.
+     *
+     * @param MessagePayloadInterface[] $payloads The payloads to check.
+     * @return boolean
+     */
+    private static function payloadsAreASingleStructuredMessage(array $payloads): bool
+    {
+        if (\count($payloads) !== 1) {
+            return false;
+        }
+
+        $payload = $payloads[0];
+        if (!$payload instanceof StructuredMessagePayload) {
             return false;
         }
 

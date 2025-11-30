@@ -8,6 +8,10 @@ use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedExecutor;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedGatedBatch;
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
+use DigitalAnomaly\AlteredLogic\Exceptions\EmbedException;
+use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
+use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
+use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 use DigitalAnomaly\AlteredLogic\Support\DebugLevelHelper;
 
@@ -22,10 +26,16 @@ abstract class AbstractEmbed
 
 
     /** @var string|null The embed model profile to use. */
-    private ?string $modelProfile = null;
+    private ?string $modelProfileName = null;
+
+    /** @var string|null The embed model to use directly (instead of using a model profile). */
+    private ?string $modelName = null;
 
     /** @var string|null The embed cache profile to use. */
-    private ?string $cacheProfile = null;
+    private ?string $cacheProfileName = null;
+
+    /** @var string|null The embed cache to use directly (instead of using a cache profile). */
+    private ?string $cacheName = null;
 
     /** @var EmbedFaker|null The faker to use when generating embeddings. */
     private ?EmbedFaker $faker = null;
@@ -45,30 +55,76 @@ abstract class AbstractEmbed
 
 
     /**
-     * Set the embed model profile to use.
+     * Specify the model profile to use when making requests.
      *
-     * @param string|null $modelProfile The embed model profile to use.
+     * @param string|null $modelProfileName The embed model profile to use.
      * @return $this
      */
-    public function modelProfile(string|null $modelProfile): static
+    public function modelProfile(?string $modelProfileName): static
     {
-        $this->modelProfile = $modelProfile;
+        $this->modelProfileName = $modelProfileName !== ''
+            ? $modelProfileName
+            : null;
+
+        $this->modelName = null; // override the model
 
         return $this;
     }
 
     /**
-     * Set the embed cache profile to use.
+     * Specify the model to use directly (instead of using a model profile).
      *
-     * @param string|null $cacheProfile The embed cache profile to use.
+     * @param string|null $modelName The name of the model to use.
      * @return $this
      */
-    public function cacheProfile(string|null $cacheProfile): static
+    public function model(?string $modelName): static
     {
-        $this->cacheProfile = $cacheProfile;
+        $this->modelProfileName = null; // override the model profile
+
+        $this->modelName = $modelName !== ''
+            ? $modelName
+            : null;
 
         return $this;
     }
+
+
+
+    /**
+     * Set the embed cache profile to use.
+     *
+     * @param string|null $cacheProfileName The embed cache profile to use.
+     * @return $this
+     */
+    public function cacheProfile(?string $cacheProfileName): static
+    {
+        $this->cacheProfileName = $cacheProfileName !== ''
+            ? $cacheProfileName
+            : null;
+
+        $this->cacheName = null; // override the cache name
+
+        return $this;
+    }
+
+    /**
+     * Specify the cache to use directly (instead of using a cache profile).
+     *
+     * @param string|null $cacheName The name of the cache to use.
+     * @return $this
+     */
+    public function cache(?string $cacheName): static
+    {
+        $this->cacheProfileName = null; // override the cache profile
+
+        $this->cacheName = $cacheName !== ''
+            ? $cacheName
+            : null;
+
+        return $this;
+    }
+
+
 
     /**
      * Set the faker to use when generating embeddings.
@@ -82,6 +138,8 @@ abstract class AbstractEmbed
 
         return $this;
     }
+
+
 
     /**
      * Set the debug level to use: 0 = off, 1 = basic, 2 = verbose, null = use the default.
@@ -137,7 +195,7 @@ abstract class AbstractEmbed
     }
 
     /**
-     * Flush embeddings - Process all outstanding embeddings (across all models).
+     * Flush embeddings - This processes all outstanding embeddings globally (across all models).
      *
      * @return void
      */
@@ -166,13 +224,109 @@ abstract class AbstractEmbed
             $debugLevel = 0;
         }
 
-        return Registry::getEmbedGatedBatch(
+        return Registry::getEmbedGatedBatch( // todo - this will create a new key every time because the profile object is new every time, when using a model instead of a profile
             $this->isDeferred,
-            Registry::embedModelProfiles()->getOrThrow((string) $this->modelProfile),
-            Registry::embedCacheProfiles()->get((string) $this->cacheProfile, allowEmpty: true),
+            $this->resolveModelProfile(),
+            $this->resolveCacheProfile(),
             $this->faker,
             $debugLevel,
         );
+    }
+
+    /**
+     * Resolve the embed model profile to use.
+     *
+     * @return EmbedModelProfile
+     * @throws EmbedException If no profile or model could be resolved.
+     */
+    private function resolveModelProfile(): EmbedModelProfile
+    {
+        // 1. Check for explicit profile name
+        if ($this->modelProfileName !== null) {
+            try {
+                return Registry::embedModelProfiles()->getOrThrow($this->modelProfileName);
+            } catch (RegistryException $e) {
+                throw EmbedException::embedModelProfileNotFound($this->modelProfileName, $e);
+            }
+        }
+
+        // 2. Check for explicit model name
+        if ($this->modelName !== null) {
+            try {
+                return Registry::embedModels()->getOrThrow($this->modelName)->getModelProfile();
+            } catch (RegistryException $e) {
+                throw EmbedException::embedModelNotFound($this->modelName, $e);
+            }
+        }
+
+        // 3. Try the default profile
+        $modelProfile = Registry::embedModelProfiles()->get(allowNotFound: true, allowEmpty: true);
+        if ($modelProfile !== null) {
+            return $modelProfile;
+        }
+
+        // 4. Try the default model
+        $modelProfile = Registry::embedModels()->get(allowNotFound: true, allowEmpty: true)?->getModelProfile();
+        if ($modelProfile !== null) {
+            return $modelProfile;
+        }
+
+        // throw an exception if a default model profile has been specified but not found
+        $defaultName = Registry::embedModelProfiles()::frameworkGetDefaultEntityName();
+        if ($defaultName !== null) {
+            throw EmbedException::embedModelProfileNotFound($defaultName);
+        }
+
+        // 5. Nothing found
+        throw EmbedException::noEmbedModelOrProfileConfigured();
+    }
+
+    /**
+     * Resolve the embed cache profile to use.
+     *
+     * @return EmbedCacheProfile|null
+     * @throws EmbedException If cache/profile is specified but not found.
+     */
+    private function resolveCacheProfile(): ?EmbedCacheProfile
+    {
+        // 1. Check for explicit profile name
+        if ($this->cacheProfileName !== null) {
+            try {
+                return Registry::embedCacheProfiles()->getOrThrow($this->cacheProfileName);
+            } catch (RegistryException $e) {
+                throw EmbedException::embedCacheProfileNotFound($this->cacheProfileName, $e);
+            }
+        }
+
+        // 2. Check for explicit cache name
+        if ($this->cacheName !== null) {
+            try {
+                return Registry::embedCaches()->getOrThrow($this->cacheName)->getCacheProfile();
+            } catch (RegistryException $e) {
+                throw EmbedException::embedCacheNotFound($this->cacheName, $e);
+            }
+        }
+
+        // 3. Try the default profile
+        $cacheProfile = Registry::embedCacheProfiles()->get(allowNotFound: true, allowEmpty: true);
+        if ($cacheProfile !== null) {
+            return $cacheProfile;
+        }
+
+        // 4. Try the default cache
+        $cacheProfile = Registry::embedCaches()->get(allowNotFound: true, allowEmpty: true)?->getCacheProfile();
+        if ($cacheProfile !== null) {
+            return $cacheProfile;
+        }
+
+        // throw an exception if a default cache profile has been specified but not found
+        $defaultName = Registry::embedCacheProfiles()::frameworkGetDefaultEntityName();
+        if ($defaultName !== null) {
+            throw EmbedException::embedCacheProfileNotFound($defaultName);
+        }
+
+        // 5. No caching configured (this is allowed)
+        return null;
     }
 
     /**

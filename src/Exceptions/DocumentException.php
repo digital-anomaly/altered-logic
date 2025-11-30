@@ -25,6 +25,16 @@ final class DocumentException extends AlteredLogicException
 
 
     /**
+     * Create exception when doc-store hasn't been set.
+     *
+     * @return self
+     */
+    public static function docStoreNotSet(): self
+    {
+        return new self('Doc-store has not been set on the DocumentProfile');
+    }
+
+    /**
      * Thrown when no doc-searchers have been attached (to the DocumentProfile).
      *
      * @return self

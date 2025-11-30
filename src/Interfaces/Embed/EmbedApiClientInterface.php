@@ -6,6 +6,7 @@ namespace DigitalAnomaly\AlteredLogic\Interfaces\Embed;
 
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnInputDTO;
+use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedConnectionReference;
 use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpPendingRequestInterface;
 use DigitalAnomaly\AlteredLogic\Support\Http\DTOs\HttpTxnDTO;
@@ -38,9 +39,14 @@ interface EmbedApiClientInterface
     /**
      * Build an EmbedTxnDTO based on the response from the AI provider.
      *
-     * @param EmbedTxnInputDTO $embedInput The EmbedTxnInputDTO used.
-     * @param HttpTxnDTO       $httpTxn    The transmission to analyse.
+     * @param EmbedTxnInputDTO         $embedInput          The EmbedsTxnInputDTO used.
+     * @param HttpTxnDTO               $httpTxn             The transmission to analyse.
+     * @param EmbedConnectionReference $connectionReference Details about the connection used.
      * @return EmbedTxnDTO
      */
-    public function buildResponse(EmbedTxnInputDTO $embedInput, HttpTxnDTO $httpTxn): EmbedTxnDTO;
+    public function buildResponse(
+        EmbedTxnInputDTO $embedInput,
+        HttpTxnDTO $httpTxn,
+        EmbedConnectionReference $connectionReference,
+    ): EmbedTxnDTO;
 }

@@ -24,14 +24,18 @@ class EmbedModelProfileRegistryGroup extends AbstractRegistryGroup
     /**
      * Resolve the name of the default entity using the framework and its configuration.
      *
-     * @param FrameworksEnum $framework The framework to get the name from.
+     * @param FrameworksEnum $framework   The framework to get the name from.
+     * @param boolean        $checkExists Whether to check if the entity has been defined in the configuration when set.
      * @return string|BackedEnum|null
      */
-    protected function frameworkResolveDefaultEntityName(FrameworksEnum $framework): string|BackedEnum|null
-    {
+    protected static function frameworkResolveDefaultEntityName(
+        FrameworksEnum $framework,
+        bool $checkExists,
+    ): string|BackedEnum|null {
+
         // todo - add other frameworks
         return match ($framework) {
-            FrameworksEnum::Laravel => LaravelFrameworkRegistryBuilder::getDefaultEmbedModelProfileName(),
+            FrameworksEnum::Laravel => LaravelFrameworkRegistryBuilder::getDefaultEmbedModelProfileName($checkExists),
             default => null,
         };
     }
@@ -43,7 +47,7 @@ class EmbedModelProfileRegistryGroup extends AbstractRegistryGroup
      * @param string         $name      The name of the entity to build.
      * @return EmbedModelProfile|null
      */
-    protected function frameworkBuildEntity(FrameworksEnum $framework, string $name): ?EmbedModelProfile
+    protected static function frameworkBuildEntity(FrameworksEnum $framework, string $name): ?EmbedModelProfile
     {
         // todo - add other frameworks
         return match ($framework) {

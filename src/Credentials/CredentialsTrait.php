@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders;
+namespace DigitalAnomaly\AlteredLogic\Credentials;
 
 use DigitalAnomaly\AlteredLogic\AlteredLogic;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
@@ -13,7 +13,7 @@ use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
 trait CredentialsTrait
 {
     /**
-     * Register the provider credentials.
+     * Register this provider credentials.
      *
      * The provider's default name will be used if no name is provided.
      *

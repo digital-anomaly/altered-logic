@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders;
+namespace DigitalAnomaly\AlteredLogic\Embed;
 
 use DigitalAnomaly\AlteredLogic\AlteredLogic;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
@@ -11,6 +11,8 @@ use DigitalAnomaly\AlteredLogic\Exceptions\EmbedException;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
+use DigitalAnomaly\AlteredLogic\Registry\HasRegisteredNameTrait;
+use DigitalAnomaly\AlteredLogic\Support\StringHelper;
 
 /**
  * Trait for embed models.
@@ -19,6 +21,10 @@ use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
  */
 trait EmbedModelTrait
 {
+    use HasRegisteredNameTrait;
+
+
+
     /** @var string The provider credentials to use. */
     private readonly AiProvidersEnum|string $credentials;
 
@@ -39,6 +45,9 @@ trait EmbedModelTrait
 
     /** @var integer The number of dimensions the embeddings have. */
     private readonly int $dimensions;
+
+    /** @var EmbedModelProfile|null The model profile to use when only using this model. */
+    private ?EmbedModelProfile $singleModelProfile = null;
 
     /** @var EmbedFaker|null The faker to use when generating embeddings. */
     private ?EmbedFaker $faker = null;
@@ -152,6 +161,25 @@ trait EmbedModelTrait
 
 
     /**
+     * Build an embed model profile containing just this model.
+     *
+     * Will return the same object when called multiple times.
+     *
+     * @return EmbedModelProfile
+     * @throws EmbedException If the model has not been registered.
+     */
+    public function getModelProfile(): EmbedModelProfile
+    {
+        if (!$this->isRegistered()) {
+            throw EmbedException::embedModelNotRegistered($this->getModel());
+        }
+
+        return $this->singleModelProfile ??= new EmbedModelProfile()->addModel($this->getRegisteredName());
+    }
+
+
+
+    /**
      * Get the faker.
      *
      * @return EmbedFaker|null
@@ -179,9 +207,9 @@ trait EmbedModelTrait
 
 
     /**
-     * Register the embed model.
+     * Register this embed model.
      *
-     * The model name will be used if no name is provided.
+     * The model's name will be used if no name is provided.
      *
      * @param string  $name      The name of the model to register.
      * @param boolean $isDefault Whether this is the default model or not (the first one is default unless another is
@@ -190,14 +218,11 @@ trait EmbedModelTrait
      */
     public function register(string $name = '', bool $isDefault = false): void
     {
-        // create an EmbedModelProfile with one EmbedModel
-        // abstracting via a EmbedModelProfile is for future enhancement. e.g.:
-        // - if the same model is supported via different end-points, provide fall-back if one isn't available
-        // but for now, having one EmbedModel per profile is a sane starting point
+        $name = $name !== ''
+            ? $name
+            : $this->getModel();
 
-        $modelProfile = new EmbedModelProfile()->addModel($this);
-
-        AlteredLogic::registerEmbedModelProfile($name, $modelProfile, $isDefault);
+        AlteredLogic::registerEmbedModel($name, $this, $isDefault);
     }
 
 
@@ -210,12 +235,32 @@ trait EmbedModelTrait
      * @return integer
      * @throws EmbedException If the dimensions are unknown for the given model.
      */
-    private static function pickDefaultDimensions(string $model, array $defaultDimensions): int
+    protected static function pickDefaultDimensions(string $model, array $defaultDimensions): int
     {
         if (\array_key_exists($model, $defaultDimensions)) {
             return $defaultDimensions[$model];
         }
 
         throw EmbedException::dimensionsUnknown($model);
+    }
+
+
+
+    /**
+     * Build a fingerprint representing the provider + service being used (ostensibly: provider + model).
+     *
+     * Used to store provider details, and to differentiate between different services.
+     *
+     * @return string
+     */
+    public function serviceFingerprint(): string
+    {
+        return StringHelper::generateUniquenessHash([
+            'client-class' => $this->client,
+            'url' => $this->url,
+            'custom-headers' => $this->customHeaders,
+            'dimensions' => $this->dimensions,
+            'model' => $this->model,
+        ]);
     }
 }

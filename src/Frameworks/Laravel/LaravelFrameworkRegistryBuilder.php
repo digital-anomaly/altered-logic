@@ -29,7 +29,7 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
 {
     private const string CONFIG_PREFIX__CREDENTIALS = 'credentials';
 
-    private const string CONFIG_PREFIX__DEFAULT_PROFILES = 'default_profiles';
+    private const string CONFIG_PREFIX__DEFAULTS = 'defaults';
 
     private const string CONFIG_PREFIX__EMBED_MODEL_PROFILES = 'embed_model_profiles';
     private const string CONFIG_PREFIX__EMBED_MODELS = 'embed_models';
@@ -41,7 +41,7 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     private const string CONFIG_PREFIX__DOC_STORES = 'doc_stores';
     private const string CONFIG_PREFIX__DOC_SEARCHERS = 'doc_searchers';
 
-    private const string CONFIG_PREFIX__MODEX_PROFILES = 'modex_profiles';
+    private const string CONFIG_PREFIX__MODEX_PROFILES = 'modex_model_profiles';
     private const string CONFIG_PREFIX__MODEX_MODELS = 'modex_models';
 
 
@@ -85,14 +85,28 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     /**
      * Get the default embed model profile name from configuration.
      *
-     * @return string
+     * @param boolean $checkExists Whether to check if the profile has been defined in the configuration when set.
+     * @return string|null
      * @throws Exception If configuration value is missing or empty.
      */
-    public static function getDefaultEmbedModelProfileName(): string
+    public static function getDefaultEmbedModelProfileName(bool $checkExists): ?string
     {
-        $defaultProfilesPrefix = self::CONFIG_PREFIX__DEFAULT_PROFILES;
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $profilePrefix = self::CONFIG_PREFIX__EMBED_MODEL_PROFILES;
 
-        return self::configNonEmptyString("{$defaultProfilesPrefix}.embed_model_profile");
+        $profileName = self::configStringOrNullOrMissing("{$defaultsPrefix}.embed_model_or_profile");
+
+        // when empty
+        if (\in_array($profileName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this profile has been defined (if the user requested)
+        if ($checkExists && !self::configHas("{$profilePrefix}.{$profileName}")) {
+            return null;
+        }
+
+        return $profileName;
     }
 
     /**
@@ -105,48 +119,84 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     public static function buildEmbedModelProfile(string $name): ?EmbedModelProfile
     {
         $profilePrefix = self::CONFIG_PREFIX__EMBED_MODEL_PROFILES;
-        $embedModelsPrefix = self::CONFIG_PREFIX__EMBED_MODELS;
 
         // only proceed if the user has defined configuration for this
         if (!self::configHas("{$profilePrefix}.{$name}.models")) {
             return null;
         }
 
-
-
-        $profile = new EmbedModelProfile();
-
-        // add the embed models
-
-        $models = self::configNonEmptyArray("{$profilePrefix}.{$name}.models"); // needs to have at least one model
-        foreach ($models as $modelName) {
+        // check that the embed model names look valid
+        $modelNames = self::configNonEmptyArray("{$profilePrefix}.{$name}.models");
+        foreach ($modelNames as $modelName) {
 
             // can't resolve the model name
             if (!\is_string($modelName)) {
-                $modelame = (string) $modelName;
-                throw new Exception("Invalid embed model name: $modelame"); // todo - add custom exception
+                $modelName = (string) $modelName;
+                throw new Exception("Invalid embed model name: $modelName"); // todo - add custom exception
             }
-
-            if (!self::configHas("{$embedModelsPrefix}.{$modelName}")) {
-                throw new Exception("Embed model '$modelName' has not been defined"); // todo - add custom exception
-            }
-
-            /** @var EmbedModelInterface|null $model */
-            $model = self::buildInstance(
-                $modelName,
-                "{$embedModelsPrefix}.{$modelName}",
-                EmbedModelInterface::class,
-            );
-
-            // invalid model
-            if ($model === null) {
-                throw new Exception("Embed model '$modelName' could not be built"); // todo - add custom exception
-            }
-
-            $profile->addModel($model);
         }
 
-        return $profile;
+        /** @var string[] $modelNames */
+        return new EmbedModelProfile()->addModels($modelNames);
+    }
+
+
+
+    /**
+     * Get the default embed model name from configuration.
+     *
+     * @param boolean $checkExists Whether to check if the model has been defined in the configuration when set.
+     * @return string|null
+     * @throws Exception If configuration value is missing or empty.
+     */
+    public static function getDefaultEmbedModelName(bool $checkExists): ?string
+    {
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $modelPrefix = self::CONFIG_PREFIX__EMBED_MODELS;
+
+        $modelName = self::configStringOrNullOrMissing("{$defaultsPrefix}.embed_model_or_profile");
+
+        // when empty
+        if (\in_array($modelName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this model has been defined if( the user requested)
+        if ($checkExists && !self::configHas("{$modelPrefix}.{$modelName}")) {
+            return null;
+        }
+
+        return $modelName;
+    }
+
+    /**
+     * Build an EmbedModel from configuration.
+     *
+     * @param string $name The name of the model to build.
+     * @return EmbedModelInterface|null
+     * @throws Exception If the model could not be built.
+     */
+    public static function buildEmbedModel(string $name): ?EmbedModelInterface
+    {
+        $embedModelsPrefix = self::CONFIG_PREFIX__EMBED_MODELS;
+
+        // only proceed if the user has defined configuration for this
+        if (!self::configHas("{$embedModelsPrefix}.{$name}")) {
+            return null;
+        }
+
+        /** @var EmbedModelInterface|null $model */
+        $model = self::buildInstance(
+            $name,
+            "{$embedModelsPrefix}.{$name}",
+            EmbedModelInterface::class,
+        );
+
+        if ($model === null) {
+            throw new Exception("Embed model '$name' could not be built"); // todo - add custom exception
+        }
+
+        return $model;
     }
 
 
@@ -156,14 +206,28 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     /**
      * Get the default embed cache profile name from configuration.
      *
-     * @return string
+     * @param boolean $checkExists Whether to check if the profile has been defined in the configuration when set.
+     * @return string|null
      * @throws Exception If configuration value is missing or empty.
      */
-    public static function getDefaultEmbedCacheProfileName(): string
+    public static function getDefaultEmbedCacheProfileName(bool $checkExists): ?string
     {
-        $defaultProfilesPrefix = self::CONFIG_PREFIX__DEFAULT_PROFILES;
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $profilePrefix = self::CONFIG_PREFIX__EMBED_CACHE_PROFILES;
 
-        return self::configNonEmptyString("{$defaultProfilesPrefix}.embed_cache_profile");
+        $profileName = self::configStringOrNullOrMissing("{$defaultsPrefix}.embed_cache_or_profile");
+
+        // when empty
+        if (\in_array($profileName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this profile has been defined (if the user requested)
+        if ($checkExists && !self::configHas("{$profilePrefix}.{$profileName}")) {
+            return null;
+        }
+
+        return $profileName;
     }
 
     /**
@@ -176,48 +240,84 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     public static function buildEmbedCacheProfile(string $name): ?EmbedCacheProfile
     {
         $profilePrefix = self::CONFIG_PREFIX__EMBED_CACHE_PROFILES;
-        $embedCachesPrefix = self::CONFIG_PREFIX__EMBED_CACHES;
 
         // only proceed if the user has defined configuration for this
         if (!self::configHas("{$profilePrefix}.{$name}.caches")) {
             return null;
         }
 
-
-
-        $profile = new EmbedCacheProfile();
-
-        // add the embed caches
-
-        $caches = self::configNonEmptyArray("{$profilePrefix}.{$name}.caches"); // needs to have at least one model
-        foreach ($caches as $cacheName) {
+        // check that the embed cache names look valid
+        $cacheNames = self::configNonEmptyArray("{$profilePrefix}.{$name}.caches");
+        foreach ($cacheNames as $cacheName) {
 
             // can't resolve the cache name
             if (!\is_string($cacheName)) {
                 $cacheName = (string) $cacheName;
                 throw new Exception("Invalid embed cache name: $cacheName"); // todo - add custom exception
             }
-
-            if (!self::configHas("{$embedCachesPrefix}.{$cacheName}")) {
-                throw new Exception("Embed cache '$cacheName' has not been defined"); // todo - add custom exception
-            }
-
-            /** @var EmbedCacheInterface|null $cache */
-            $cache = self::buildInstance(
-                $cacheName,
-                "{$embedCachesPrefix}.{$cacheName}",
-                EmbedCacheInterface::class,
-            );
-
-            // invalid cache
-            if ($cache === null) {
-                throw new Exception("Embed cache '$cacheName' could not be built"); // todo - add custom exception
-            }
-
-            $profile->addCache($cache);
         }
 
-        return $profile;
+        /** @var string[] $cacheNames */
+        return (new EmbedCacheProfile())->addCaches($cacheNames);
+    }
+
+
+
+    /**
+     * Get the default embed cache name from configuration.
+     *
+     * @param boolean $checkExists Whether to check if the cache has been defined in the configuration when set.
+     * @return string|null
+     * @throws Exception If configuration value is missing or empty.
+     */
+    public static function getDefaultEmbedCacheName(bool $checkExists): ?string
+    {
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $cachePrefix = self::CONFIG_PREFIX__EMBED_CACHES;
+
+        $cacheName = self::configStringOrNullOrMissing("{$defaultsPrefix}.embed_cache_or_profile");
+
+        // when empty
+        if (\in_array($cacheName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this cache has been defined if( the user requested)
+        if ($checkExists && !self::configHas("{$cachePrefix}.{$cacheName}")) {
+            return null;
+        }
+
+        return $cacheName;
+    }
+
+    /**
+     * Build an EmbedCache from configuration.
+     *
+     * @param string $name The name of the cache to build.
+     * @return EmbedCacheInterface|null
+     * @throws Exception If the cache could not be built.
+     */
+    public static function buildEmbedCache(string $name): ?EmbedCacheInterface
+    {
+        $embedCachesPrefix = self::CONFIG_PREFIX__EMBED_CACHES;
+
+        // only proceed if the user has defined configuration for this
+        if (!self::configHas("{$embedCachesPrefix}.{$name}")) {
+            return null;
+        }
+
+        /** @var EmbedCacheInterface|null $cache */
+        $cache = self::buildInstance(
+            $name,
+            "{$embedCachesPrefix}.{$name}",
+            EmbedCacheInterface::class,
+        );
+
+        if ($cache === null) {
+            throw new Exception("Embed cache '$name' could not be built"); // todo - add custom exception
+        }
+
+        return $cache;
     }
 
 
@@ -227,14 +327,28 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     /**
      * Get the default document profile name from configuration.
      *
-     * @return string
+     * @param boolean $checkExists Whether to check if the profile has been defined in the configuration when set.
+     * @return string|null
      * @throws Exception If configuration value is missing or empty.
      */
-    public static function getDefaultDocumentProfileName(): string
+    public static function getDefaultDocumentProfileName(bool $checkExists): ?string
     {
-        $defaultProfilesPrefix = self::CONFIG_PREFIX__DEFAULT_PROFILES;
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $profilePrefix = self::CONFIG_PREFIX__DOC_PROFILES;
 
-        return self::configNonEmptyString("{$defaultProfilesPrefix}.doc_profile");
+        $profileName = self::configStringOrNullOrMissing("{$defaultsPrefix}.doc_profile");
+
+        // when empty
+        if (\in_array($profileName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this profile has been defined (if the user requested)
+        if ($checkExists && !self::configHas("{$profilePrefix}.{$profileName}")) {
+            return null;
+        }
+
+        return $profileName;
     }
 
     /**
@@ -247,10 +361,8 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     public static function buildDocumentProfile(string $name): ?DocumentProfile
     {
         $profilePrefix = self::CONFIG_PREFIX__DOC_PROFILES;
-        $docStoresPrefix = self::CONFIG_PREFIX__DOC_STORES;
-        $docSearchersPrefix = self::CONFIG_PREFIX__DOC_SEARCHERS;
 
-        // only proceed if the user has defined configuration for this
+        // only proceed if the user has defined configuration for these
         if (!self::configHas("{$profilePrefix}.{$name}.store")) {
             return null;
         }
@@ -258,34 +370,15 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
             return null;
         }
 
-
-
         $docStoreName = self::configNonEmptyString("{$profilePrefix}.{$name}.store");
 
-        // build the doc store
+        // create the profile and set the store name
+        $profile = new DocumentProfile();
+        $profile->setStore($docStoreName);
 
-        if (!self::configHas("{$docStoresPrefix}.{$docStoreName}")) {
-            throw new Exception("Doc store '$docStoreName' has not been defined"); // todo - add custom exception
-        }
-
-        /** @var DocStoreInterface|null $docStore */
-        $docStore = self::buildInstance(
-            $docStoreName,
-            "{$docStoresPrefix}.{$docStoreName}",
-            DocStoreInterface::class,
-        );
-
-        // invalid doc store
-        if ($docStore === null) {
-            throw new Exception("Doc store '$docStoreName' could not be built"); // todo - add custom exception
-        }
-
-        $profile = new DocumentProfile($docStore);
-
-        // add the doc-searchers
-
-        $searchers = self::configNonEmptyArray("{$profilePrefix}.{$name}.searchers"); // needs to have at least one model
-        foreach ($searchers as $searcherName) {
+        // check that the doc-searcher names look valid
+        $searcherNames = self::configNonEmptyArray("{$profilePrefix}.{$name}.searchers");
+        foreach ($searcherNames as $searcherName) {
 
             // can't resolve the searcher name
             if (!\is_string($searcherName)) {
@@ -293,26 +386,72 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
                 throw new Exception("Invalid doc searcher name: $searcherName"); // todo - add custom exception
             }
 
-            if (!self::configHas("{$docSearchersPrefix}.{$searcherName}")) {
-                throw new Exception("Doc searcher '$searcherName' has not been defined"); // todo - add custom exception
-            }
-
-            /** @var DocSearcherInterface|null $searcher */
-            $searcher = self::buildInstance(
-                $searcherName,
-                "{$docSearchersPrefix}.{$searcherName}",
-                DocSearcherInterface::class,
-            );
-
-            // invalid searcher
-            if ($searcher === null) {
-                throw new Exception("Doc searcher '$searcherName' could not be built"); // todo - add custom exception
-            }
-
-            $profile->attachSearcher($searcher, $searcherName);
+            $profile->attachSearcher($searcherName);
         }
 
         return $profile;
+    }
+
+
+
+    /**
+     * Build a DocStore from configuration.
+     *
+     * @param string $name The name of the doc-store to build.
+     * @return DocStoreInterface|null
+     * @throws Exception If the doc-store could not be built.
+     */
+    public static function buildDocStore(string $name): ?DocStoreInterface
+    {
+        $docStoresPrefix = self::CONFIG_PREFIX__DOC_STORES;
+
+        // only proceed if the user has defined configuration for this
+        if (!self::configHas("{$docStoresPrefix}.{$name}")) {
+            return null;
+        }
+
+        /** @var DocStoreInterface|null $docStore */
+        $docStore = self::buildInstance(
+            $name,
+            "{$docStoresPrefix}.{$name}",
+            DocStoreInterface::class,
+        );
+
+        if ($docStore === null) {
+            throw new Exception("Doc store '$name' could not be built"); // todo - add custom exception
+        }
+
+        return $docStore;
+    }
+
+    /**
+     * Build a DocSearcher from configuration.
+     *
+     * @param string $name The name of the doc-searcher to build.
+     * @return DocSearcherInterface|null
+     * @throws Exception If the doc-searcher could not be built.
+     */
+    public static function buildDocSearcher(string $name): ?DocSearcherInterface
+    {
+        $docSearchersPrefix = self::CONFIG_PREFIX__DOC_SEARCHERS;
+
+        // only proceed if the user has defined configuration for this
+        if (!self::configHas("{$docSearchersPrefix}.{$name}")) {
+            return null;
+        }
+
+        /** @var DocSearcherInterface|null $docSearcher */
+        $docSearcher = self::buildInstance(
+            $name,
+            "{$docSearchersPrefix}.{$name}",
+            DocSearcherInterface::class,
+        );
+
+        if ($docSearcher === null) {
+            throw new Exception("Doc searcher '$name' could not be built"); // todo - add custom exception
+        }
+
+        return $docSearcher;
     }
 
 
@@ -322,14 +461,28 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     /**
      * Get the default modex model profile name from configuration.
      *
-     * @return string
+     * @param boolean $checkExists Whether to check if the profile has been defined in the configuration when set.
+     * @return string|null
      * @throws Exception If configuration value is missing or empty.
      */
-    public static function getDefaultModexModelProfileName(): string
+    public static function getDefaultModexModelProfileName(bool $checkExists): ?string
     {
-        $defaultProfilesPrefix = self::CONFIG_PREFIX__DEFAULT_PROFILES;
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $profilePrefix = self::CONFIG_PREFIX__MODEX_PROFILES;
 
-        return self::configNonEmptyString("{$defaultProfilesPrefix}.modex_model_profile");
+        $profileName = self::configStringOrNullOrMissing("{$defaultsPrefix}.modex_model_or_profile");
+
+        // when empty
+        if (\in_array($profileName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this profile has been defined (if the user requested)
+        if ($checkExists && !self::configHas("{$profilePrefix}.{$profileName}")) {
+            return null;
+        }
+
+        return $profileName;
     }
 
     /**
@@ -342,48 +495,86 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     public static function buildModexModelProfile(string $name): ?ModexModelProfile
     {
         $profilePrefix = self::CONFIG_PREFIX__MODEX_PROFILES;
-        $modexModelsPrefix = self::CONFIG_PREFIX__MODEX_MODELS;
 
         // only proceed if the user has defined configuration for this
         if (!self::configHas("{$profilePrefix}.{$name}.models")) {
             return null;
         }
 
-
-
-        $profile = new ModexModelProfile();
-
-        // add the modex models
-
-        $models = self::configNonEmptyArray("{$profilePrefix}.{$name}.models"); // needs to have at least one model
-        foreach ($models as $modelName) {
+        // check that the modex model names look valid
+        $modelNames = self::configNonEmptyArray("{$profilePrefix}.{$name}.models");
+        foreach ($modelNames as $modelName) {
 
             // can't resolve the model name
             if (!\is_string($modelName)) {
                 $modelName = (string) $modelName;
                 throw new Exception("Invalid modex model name: $modelName"); // todo - add custom exception
             }
-
-            if (!self::configHas("{$modexModelsPrefix}.{$modelName}")) {
-                throw new Exception("Modex model '$modelName' has not been defined"); // todo - add custom exception
-            }
-
-            /** @var ModexModelInterface|null $model */
-            $model = self::buildInstance(
-                $modelName,
-                "{$modexModelsPrefix}.{$modelName}",
-                ModexModelInterface::class,
-            );
-
-            // invalid model
-            if ($model === null) {
-                throw new Exception("Modex model '$modelName' could not be built"); // todo - add custom exception
-            }
-
-            $profile->addModel($model);
         }
 
-        return $profile;
+        /** @var string[] $modelNames */
+        return new ModexModelProfile()->addModels($modelNames);
+    }
+
+
+
+
+
+    /**
+     * Get the default modex model name from configuration.
+     *
+     * @param boolean $checkExists Whether to check if the model has been defined in the configuration when set.
+     * @return string|null
+     * @throws Exception If configuration value is missing or empty.
+     */
+    public static function getDefaultModexModelName(bool $checkExists): ?string
+    {
+        $defaultsPrefix = self::CONFIG_PREFIX__DEFAULTS;
+        $modelPrefix = self::CONFIG_PREFIX__MODEX_MODELS;
+
+        $modelName = self::configStringOrNullOrMissing("{$defaultsPrefix}.modex_model_or_profile");
+
+        // when empty
+        if (\in_array($modelName, [null, ''], true)) {
+            return null;
+        }
+
+        // check this model has been defined if( the user requested)
+        if ($checkExists && !self::configHas("{$modelPrefix}.{$modelName}")) {
+            return null;
+        }
+
+        return $modelName;
+    }
+
+    /**
+     * Build a ModexModel from configuration.
+     *
+     * @param string $name The name of the model to build.
+     * @return ModexModelInterface|null
+     * @throws Exception If the model could not be built.
+     */
+    public static function buildModexModel(string $name): ?ModexModelInterface
+    {
+        $modexModelsPrefix = self::CONFIG_PREFIX__MODEX_MODELS;
+
+        // only proceed if the user has defined configuration for this
+        if (!self::configHas("{$modexModelsPrefix}.{$name}")) {
+            return null;
+        }
+
+        /** @var ModexModelInterface|null $model */
+        $model = self::buildInstance(
+            $name,
+            "{$modexModelsPrefix}.{$name}",
+            ModexModelInterface::class,
+        );
+
+        if ($model === null) {
+            throw new Exception("Modex model '$name' could not be built"); // todo - add custom exception
+        }
+
+        return $model;
     }
 
 
@@ -581,6 +772,29 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
         return $return;
     }
 
+    /**
+     * Get a configuration string value (empty string / null / missig is allowed).
+     *
+     * @param string $name    Config key name.
+     * @param string $default Default value to use.
+     * @return string|null
+     * @throws Exception If configuration value is invalid or doesn't exist.
+     */
+    private static function configStringOrNullOrMissing(string $name, string $default = ''): ?string
+    {
+        /** @var string|null $return */
+        $return = self::configValue(
+            'string',
+            $name,
+            $default,
+            \func_num_args() > 1,
+            true,
+            true,
+        );
+
+        return $return;
+    }
+
 
 
     /**
@@ -602,18 +816,22 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
     /**
      * Get a configuration array value.
      *
-     * @param string  $method     The method to use to get the value.
-     * @param string  $name       Config key name.
-     * @param mixed   $default    Default value to use.
-     * @param boolean $hasDefault Whether a default value was provided.
+     * @param string  $method       The method to use to get the value.
+     * @param string  $name         Config key name.
+     * @param mixed   $default      Default value to use.
+     * @param boolean $hasDefault   Whether a default value was provided.
+     * @param boolean $allowNull    Whether to allow the value to be null.
+     * @param boolean $allowMissing Whether to allow the value to be missing.
      * @return mixed
      * @throws InvalidArgumentException If configuration value does not exist or isn't a supported type.
      */
-    private static function configValue(
+    public static function configValue(
         string $method,
         string $name,
         mixed $default = null,
         bool $hasDefault = false,
+        bool $allowNull = false,
+        bool $allowMissing = false,
     ): mixed {
 
         $key = ServiceProvider::CONFIG_NAME . ".$name";
@@ -621,9 +839,25 @@ final class LaravelFrameworkRegistryBuilder implements FrameworkRegistryBuilderI
         /** @var Repository $config */
         $config = \app('config');
 
-        // when there's no value present and no default is provided
-        if (!$config->has($key) && !$hasDefault) {
+        // when there's no value present
+        if (!$config->has($key)) {
+
+            if ($hasDefault) {
+                return $default;
+            }
+
+            if ($allowMissing && $allowNull) {
+                return null;
+            }
+
             throw new InvalidArgumentException("Laravel config key '$key' not found"); // todo - add custom exception
+        }
+
+        // check for null
+        if ($config->get($key, null) === null) {
+            if ($allowNull) {
+                return null;
+            }
         }
 
         $args = [$key];

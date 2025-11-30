@@ -16,6 +16,7 @@ use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpPendingRequestInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnInputDTO;
+use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexConnectionReference;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\Client\BuildsModexTxnTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\AiMessage;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\DeveloperMessage;
@@ -35,9 +36,6 @@ final class OpenAiResponsesApiClient implements ModexApiClientInterface
     use BuildsModexTxnTrait;
 
 
-
-    /** @var string The AI provider's identifier. */
-    public const string PROVIDER_IDENTIFIER = AiProvidersEnum::OpenAI->value;
 
     /** @var array<class-string,string> The roles for the messages. */
     private const array MESSAGE_ROLES = [
@@ -165,12 +163,17 @@ final class OpenAiResponsesApiClient implements ModexApiClientInterface
     /**
      * Build an ModexTxnDTO based on the response from the AI provider.
      *
-     * @param ModexTxnInputDTO $modexInput The ModexTxnInputDTO used.
-     * @param HttpTxnDTO       $httpTxn    The transmission to analyse.
+     * @param ModexTxnInputDTO         $modexInput          The ModexTxnInputDTO used.
+     * @param HttpTxnDTO               $httpTxn             The transmission to analyse.
+     * @param ModexConnectionReference $connectionReference Details about the connection used.
      * @return ModexTxnDTO
      */
-    public function buildResponse(ModexTxnInputDTO $modexInput, HttpTxnDTO $httpTxn): ModexTxnDTO
-    {
+    public function buildResponse(
+        ModexTxnInputDTO $modexInput,
+        HttpTxnDTO $httpTxn,
+        ModexConnectionReference $connectionReference,
+    ): ModexTxnDTO {
+
         $responseData = $this->jsonDecodeResponse($httpTxn->response->body ?? '');
 
         $transmissionOutput = (new OpenAiResponsesApiInboundResponseTransformer(
@@ -184,8 +187,7 @@ final class OpenAiResponsesApiClient implements ModexApiClientInterface
         );
 
         return $this->buildModexTxn(
-            self::PROVIDER_IDENTIFIER,
-            $this->model,
+            $connectionReference,
             $httpTxn,
             $modexInput,
             $transmissionOutput,

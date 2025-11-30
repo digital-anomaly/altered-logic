@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Modex\DTOs;
 
+use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexConnectionReference;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\StructuredMessagePayload;
 use DigitalAnomaly\AlteredLogic\Modex\Messages\Payloads\TextMessagePayload;
 use DigitalAnomaly\Schema\HydrateSchema;
@@ -18,16 +19,14 @@ final readonly class ModexTxnDTO
     /**
      * Constructor.
      *
-     * @param string                 $provider The AI provider that was used.
-     * @param string                 $model    The model that was used.
-     * @param boolean|null           $success  Whether the request was successful or not.
-     * @param ModexTxnInputDTO       $request  The input for the transmission.
-     * @param ModexTxnOutputDTO|null $response The output for the transmission.
-     * @param ModexTxnMetaDTO|null   $meta     Metadata about the transmission.
+     * @param ModexConnectionReference $connectionReference Details about the connection used.
+     * @param boolean|null             $success             Whether the request was successful or not.
+     * @param ModexTxnInputDTO         $request             The input for the transmission.
+     * @param ModexTxnOutputDTO|null   $response            The output for the transmission.
+     * @param ModexTxnMetaDTO|null     $meta                Metadata about the transmission.
      */
     public function __construct(
-        public string $provider,
-        public string $model,
+        public ModexConnectionReference $connectionReference,
         public ?bool $success,
         public ModexTxnInputDTO $request,
         public ?ModexTxnOutputDTO $response,

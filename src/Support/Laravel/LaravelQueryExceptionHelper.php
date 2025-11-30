@@ -13,12 +13,31 @@ use Illuminate\Database\QueryException;
 final class LaravelQueryExceptionHelper
 {
     /**
+     * Run the given callback. Detects exceptions thrown because the table doesn't exist and wraps them in a
+     * ResourceException.
+     *
+     * @param callable $callback The callback to run.
+     * @return mixed The return value of the callback.
+     * @throws ResourceException If the callback throws a QueryException.
+     */
+    public static function runWrapped(callable $callback): mixed
+    {
+        try {
+
+            return $callback();
+
+        } catch (QueryException $e) {
+            throw self::wrapResourceException($e);
+        }
+    }
+
+    /**
      * If the QueryException was thrown because the table doesn't exist, wrap it in a ResourceException.
      *
      * @param QueryException $e The query exception to wrap.
      * @return QueryException|ResourceException
      */
-    public static function wrapResourceException(QueryException $e): QueryException|ResourceException
+    private static function wrapResourceException(QueryException $e): QueryException|ResourceException
     {
         // MySQL and MariaDB
         // code "42S02" means the table doesn't exist
@@ -44,23 +63,5 @@ final class LaravelQueryExceptionHelper
 
 
         return $e;
-    }
-
-    /**
-     * Run the given callback. Throws a ResourceException if a table doesn't exist.
-     *
-     * @param callable $callback The callback to run.
-     * @return mixed The return value of the callback.
-     * @throws ResourceException If the callback throws a QueryException.
-     */
-    public static function runWrapped(callable $callback): mixed
-    {
-        try {
-
-            return $callback();
-
-        } catch (QueryException $e) {
-            throw self::wrapResourceException($e);
-        }
     }
 }

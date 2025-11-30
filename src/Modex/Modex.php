@@ -7,18 +7,20 @@ namespace DigitalAnomaly\AlteredLogic\Modex;
 use CodeDistortion\Backoff\Backoff;
 use DigitalAnomaly\AlteredLogic\Adapters\Resolvers\HttpClientResolver;
 use DigitalAnomaly\AlteredLogic\Exceptions\ModexException;
+use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexApiClientInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnInputDTO;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexCurrentState;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexDebug;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexSchemas;
-use DigitalAnomaly\AlteredLogic\Modex\Internal\Thread;
+use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexConnectionReference;
 // use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasBackoffTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasLoopOrchestratorTrait;
-use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasModexDialogueTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasModexSchemasTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasModexSettingsTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasModexStateTrait;
 use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasProfileConfigurationTrait;
+use DigitalAnomaly\AlteredLogic\Modex\Internal\Traits\HasThreadTrait;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 use DigitalAnomaly\AlteredLogic\Support\Class\CallableInspector;
 use DigitalAnomaly\AlteredLogic\Support\DebugLevelHelper;
@@ -31,7 +33,7 @@ use DigitalAnomaly\AlteredLogic\Support\Framework\DependencyInjection;
 final class Modex
 {
     // use HasBackoffTrait;
-    use HasModexDialogueTrait;
+    use HasThreadTrait;
     use HasModexSchemasTrait;
     use HasModexSettingsTrait;
     use HasModexStateTrait;
@@ -59,11 +61,6 @@ final class Modex
 
     /** @var mixed The value returned by the callable or ModexRoutine's ->initialise() method. */
     private mixed $definerReturnValue = null;
-
-
-
-    /** @var Thread|null The thread to use. */
-    private ?Thread $thread = null;
 
 
 
@@ -280,11 +277,17 @@ final class Modex
 
 
 
+            $temp = $this->resolveModelProfile()->buildModexApiClient();
+            ['apiClient' => $apiClient, 'modexModel' => $modexModel] = $temp;
+            $connectionReference = ModexConnectionReference::fromModexModel($modexModel);
+
+
+
             // if the definer or loop orchestrator didn't add any messages,
             // then the definer might have been designed to coordinate other
             // Modex calls instead of actually doing Modex interactions itself,
             // so return the value the definer returned
-            if (!$this->getDialogue()->hasUnsentMessages()) {
+            if (!$this->getThread()->hasUnhandledMessages($connectionReference)) {
                 $this->result = $this->definerReturnValue;
                 return;
             }
@@ -294,14 +297,12 @@ final class Modex
             do {
 
                 // send the request to the AI provider
-                $this->sendIndividualRequest();
+                $this->sendIndividualRequest($apiClient, $modexModel, $connectionReference);
                 $response = $this->formatLlmResponse();
 
                 // execute the function calls that the LLM requested, if any
                 $control = $this->getThread()->executeNewFunctionCalls();
 
-                // "archive" the messages, so they're not re-sent next time
-                $this->resetDialogue(true);
                 // add the response/s from function calls to the message list, so they are sent next time
                 $this->addFunctionCallResultsToMessageList();
 
@@ -330,7 +331,7 @@ final class Modex
                 }
 
                 // stop if the maximum number of steps has been reached
-                if ($this->getThread()->hasExhaustedMaxSteps()) {
+                if ($this->getThread()->hasExhaustedMaxSteps($this->getSettings()->maxSteps)) {
                     break;
                 }
 
@@ -369,48 +370,30 @@ final class Modex
 
 
     /**
-     * Get the thread to use.
-     *
-     * @return Thread
-     */
-    private function getThread(): Thread
-    {
-        return $this->thread ??= new Thread($this->getSettings()->maxSteps);
-    }
-
-
-
-    /**
      * Send a single request, and record the interaction.
      *
+     * @param ModexApiClientInterface  $apiClient           The API client to use to send the request.
+     * @param ModexModelInterface      $modexModel          The model to use for the request.
+     * @param ModexConnectionReference $connectionReference Details about the connection used.
      * @return void
      */
-    private function sendIndividualRequest(): void
-    {
-        $temp = $this->resolveModelProfile()->buildModexApiClient();
-        ['apiClient' => $apiClient, 'modexModel' => $modexModel] = $temp;
+    private function sendIndividualRequest(
+        ModexApiClientInterface $apiClient,
+        ModexModelInterface $modexModel,
+        ModexConnectionReference $connectionReference,
+    ): void {
 
         self::ensureHttpRequestsArentBlocked($modexModel->getModel());
-
-        $settings = $this->getSettings();
-        $schemas = $this->getModexSchemasReadyForSending($this->getState());
-        $dialogue = $this->getDialogue();
-        $modexInput = new ModexTxnInputDTO($settings, $schemas, $dialogue);
 
         $thread = $this->getThread();
         $requestNumber = $thread->nextStepNumber();
 
+        $settings = $this->getSettings();
+        $schemas = $this->getModexSchemasReadyForSending($this->getState());
+        $dialogue = $thread->buildDialogue($connectionReference);
+        $modexInput = new ModexTxnInputDTO($settings, $schemas, $dialogue);
 
-
-        if ($this->debugLevel !== null) {
-            $debugLevel = $this->debugLevel;
-        } elseif (Registry::modexConfig()->debugLevel !== null) {
-            $debugLevel = Registry::modexConfig()->debugLevel;
-        } else {
-            $debugLevel = 0;
-        }
-
-        $debug = new ModexDebug($debugLevel);
+        $debug = new ModexDebug($this->resolveDebugLevel());
 
 
 
@@ -423,8 +406,8 @@ final class Modex
         $backoff = Backoff::exponentialMs(5, 2)->immediateFirstRetry()->maxAttempts(4);
         $httpClient = HttpClientResolver::buildHttpClient($backoff);
         $httpTxn = $apiClient->sendRequest($httpClient, $requestBody);
-        $modexTxn = $apiClient->buildResponse($modexInput, $httpTxn);
-        $thread->addTxn($httpTxn, $modexTxn);
+        $modexTxn = $apiClient->buildResponse($modexInput, $httpTxn, $connectionReference);
+        $thread->addTxn($httpTxn, $modexTxn, $connectionReference);
 
 
 
@@ -449,6 +432,24 @@ final class Modex
         if (Registry::modexConfig()->blockRequests) {
             throw ModexException::httpRequestsAreBlocked($modelName);
         }
+    }
+
+    /**
+     * Resolve the debug level to use.
+     *
+     * @return integer
+     */
+    private function resolveDebugLevel(): int
+    {
+        if ($this->debugLevel !== null) {
+            return $this->debugLevel;
+        }
+
+        if (Registry::modexConfig()->debugLevel !== null) {
+            return Registry::modexConfig()->debugLevel;
+        }
+
+        return 0;
     }
 
 

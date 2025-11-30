@@ -16,7 +16,7 @@ use DigitalAnomaly\AlteredLogic\Support\Framework\DependencyInjection;
  */
 final class ModexModelProfile
 {
-    /** @var ModexModelInterface[] The models to use in order of preference. */
+    /** @var string[] The model names to use in order of preference. */
     private array $modelPreferences = [];
 
 
@@ -24,12 +24,27 @@ final class ModexModelProfile
     /**
      * Add a model to the preference list.
      *
-     * @param ModexModelInterface $model The model to add.
+     * @param string $registeredModelName The name of the model to add.
      * @return self
      */
-    public function addModel(ModexModelInterface $model): self
+    public function addModel(string $registeredModelName): self
     {
-        $this->modelPreferences[] = $model;
+        $this->modelPreferences[] = $registeredModelName;
+
+        return $this;
+    }
+
+    /**
+     * Add multiple models to the preference list.
+     *
+     * @param string[] $registeredModelNames The names of the models to add.
+     * @return self
+     */
+    public function addModels(array $registeredModelNames): self
+    {
+        foreach ($registeredModelNames as $registeredModelName) {
+            $this->addModel($registeredModelName);
+        }
 
         return $this;
     }
@@ -37,7 +52,7 @@ final class ModexModelProfile
 
 
     /**
-     * Register the modex model.
+     * Register this modex model profile.
      *
      * @param string  $name      The name of the profile to register.
      * @param boolean $isDefault Whether this is the default profile or not (the first one is default unless another is
@@ -61,11 +76,18 @@ final class ModexModelProfile
      */
     public function buildModexApiClient(): array
     {
-        foreach ($this->modelPreferences as $modelPreference) {
+        foreach ($this->modelPreferences as $modelName) {
 
+            // resolve the model from the registry
+            $modelPreference = Registry::modexModels()->get($modelName, allowNotFound: true);
+            if ($modelPreference === null) {
+                continue; // skip if model not registered
+            }
+
+            // resolve the credentials from the registry
             $credentials = Registry::credentials()->get($modelPreference->getCredentials(), true);
             if ($credentials === null) {
-                continue;
+                continue; // skip if credentials not found
             }
 
             $clientClass = $modelPreference->getClientClass();
@@ -83,7 +105,7 @@ final class ModexModelProfile
                     [
                         'modexModel' => $modelPreference,
                         'credentials' => $credentials,
-                    ]
+                    ],
                 );
 
             } catch (\Throwable $e) {

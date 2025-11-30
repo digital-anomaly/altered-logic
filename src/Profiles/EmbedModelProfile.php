@@ -8,16 +8,15 @@ use DigitalAnomaly\AlteredLogic\AlteredLogic;
 use DigitalAnomaly\AlteredLogic\Exceptions\EmbedException;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
-use DigitalAnomaly\AlteredLogic\Interfaces\Registry\HasDefaultNameInterface;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 use DigitalAnomaly\AlteredLogic\Support\Framework\DependencyInjection;
 
 /**
  * A profile containing a priority list of embed models to use.
  */
-final class EmbedModelProfile implements HasDefaultNameInterface
+final class EmbedModelProfile
 {
-    /** @var EmbedModelInterface[] The models to use in order of preference. */
+    /** @var string[] The model names to use in order of preference. */
     private array $modelPreferences = [];
 
 
@@ -25,55 +24,56 @@ final class EmbedModelProfile implements HasDefaultNameInterface
     /**
      * Add a model to the preference list.
      *
-     * @param EmbedModelInterface $model The model to add.
+     * @param string $registeredModelName The name of the model to add.
      * @return self
      */
-    public function addModel(EmbedModelInterface $model): self
+    public function addModel(string $registeredModelName): self
     {
-        $this->modelPreferences[] = $model;
+        $this->modelPreferences[] = $registeredModelName;
+
+        return $this;
+    }
+
+    /**
+     * Add multiple models to the preference list.
+     *
+     * @param string[] $registeredModelNames The names of the models to add.
+     * @return self
+     */
+    public function addModels(array $registeredModelNames): self
+    {
+        foreach ($registeredModelNames as $registeredModelName) {
+            $this->addModel($registeredModelName);
+        }
 
         return $this;
     }
 
 
 
-    /**
-     * Get the profile's default name.
-     *
-     * @return string
-     */
-    public function getDefaultName(): string
-    {
-        return $this->getModelName();
-    }
+
 
     /**
-     * Get the model name.
-     *
-     * @return string
-     */
-    public function getModelName(): string
-    {
-        // pick the first model's name
-        $embedModel = $this->modelPreferences[0] ?? null;
-
-        return $embedModel?->getModel() ?? 'default';
-    }
-
-    /**
-     * Get the dimensions.
+     * Get the dimensions from the first available model in the profile.
      *
      * @return integer
+     * @throws EmbedException If no valid model could be found.
      */
     public function getDimensions(): int
     {
-        // pick the first model's dimensions
-        $embedModel = $this->modelPreferences[0] ?? null;
+        foreach ($this->modelPreferences as $modelName) {
 
-        return $embedModel?->getDimensions() ?? 0;
+            // resolve the model from the registry
+            $modelPreference = Registry::embedModels()->get($modelName, allowNotFound: true);
+            if ($modelPreference === null) {
+                continue; // skip if model not registered
+            }
+
+            return $modelPreference->getDimensions();
+        }
+
+        throw EmbedException::embedApiClientCouldNotBeResolved();
     }
-
-
 
 
 
@@ -85,11 +85,18 @@ final class EmbedModelProfile implements HasDefaultNameInterface
      */
     public function buildEmbedApiClient(): array
     {
-        foreach ($this->modelPreferences as $modelPreference) {
+        foreach ($this->modelPreferences as $modelName) {
 
+            // resolve the model from the registry
+            $modelPreference = Registry::embedModels()->get($modelName, allowNotFound: true);
+            if ($modelPreference === null) {
+                continue; // skip if model not registered
+            }
+
+            // resolve the credentials from the registry
             $credentials = Registry::credentials()->get($modelPreference->getCredentials(), true);
             if ($credentials === null) {
-                continue;
+                continue; // skip if credentials not found
             }
 
             $clientClass = $modelPreference->getClientClass();
@@ -126,7 +133,7 @@ final class EmbedModelProfile implements HasDefaultNameInterface
 
 
     /**
-     * Register the embed model.
+     * Register this embed model profile.
      *
      * @param string  $name      The name of the profile to register.
      * @param boolean $isDefault Whether this is the default profile or not (the first one is default unless another is

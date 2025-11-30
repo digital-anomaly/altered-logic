@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\DocSearchers\Laravel;
 
+use DigitalAnomaly\AlteredLogic\Documents\AbstractDocSearcher;
 use DigitalAnomaly\AlteredLogic\Documents\DocResultSet;
 use DigitalAnomaly\AlteredLogic\Documents\Document;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatchItem;
 use DigitalAnomaly\AlteredLogic\Embed\Embed;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
 use DigitalAnomaly\AlteredLogic\Exceptions\ResourceException;
-use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocSearcherInterface;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 use DigitalAnomaly\AlteredLogic\Support\Laravel\LaravelQueryExceptionHelper;
 use Illuminate\Database\Connection;
@@ -20,7 +20,7 @@ use stdClass;
 /**
  * A Postgres DocSearcher that uses Laravel's database connection.
  */
-final class LaravelPostgresEmbedDocSearcher implements DocSearcherInterface
+final class LaravelPostgresEmbedDocSearcher extends AbstractDocSearcher
 {
     /**
      * Constructor.

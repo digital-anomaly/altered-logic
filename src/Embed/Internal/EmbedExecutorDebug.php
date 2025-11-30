@@ -301,9 +301,15 @@ final class EmbedExecutorDebug
             ? \round($httpTxn->duration->durationSeconds, 3) . ' seconds'
             : 'unknown';
 
-        $resolvedModelExtra = $response?->resolvedModel !== '' && $response?->resolvedModel !== $embedTxn->model
-            ? ' (actual: ' . $response?->resolvedModel . ')'
-            : '';
+        $provider = $embedTxn->connectionReference->getProviderString();
+        $model = $embedTxn->connectionReference->getModel();
+
+        $resolvedModelExtra = '';
+        if ($response?->resolvedModel !== '') {
+            $resolvedModelExtra = $response?->resolvedModel !== $embedTxn->connectionReference->getModel()
+                ? " (actual: {$response?->resolvedModel})"
+                : '';
+        }
 
         $tokens = $embedTxn->meta?->tokensUsed;
 
@@ -315,7 +321,7 @@ final class EmbedExecutorDebug
         $lines[] = 'HTTP RESPONSE INFO:';
         $lines[] = "- Status: {$httpResponse?->statusCode} {$httpResponse?->statusReason}";
         $lines[] = "- Time:   {$duration}";
-        $lines[] = "- Model:  {$embedTxn->provider} {$embedTxn->model}{$resolvedModelExtra}";
+        $lines[] = "- Model:  {$provider} {$model}{$resolvedModelExtra}";
         if ($embedTxn->success === true) {
             $lines[] = "- Tokens: {$tokens?->inputTokens}{$maxTokensExtra}";
         }

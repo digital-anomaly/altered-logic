@@ -6,6 +6,7 @@ namespace DigitalAnomaly\AlteredLogic\Interfaces\Embed;
 
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
 use DigitalAnomaly\AlteredLogic\Exceptions\ResourceException;
+use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
 
 /**
  * Interface for caching embedding vectors.
@@ -49,8 +50,21 @@ interface EmbedCacheInterface
      */
     public function storeEmbeddings(string $tableSuffix, array $embeddings): void;
 
+
+
     /**
-     * Register the embed cache.
+     * Build an embed cache profile containing just this cache.
+     *
+     * Will return the same object when called multiple times.
+     *
+     * @return EmbedCacheProfile
+     */
+    public function getCacheProfile(): EmbedCacheProfile;
+
+
+
+    /**
+     * Register this embed cache.
      *
      * @param string  $name      The name of the cache to register.
      * @param boolean $isDefault Whether this is the default cache or not (the first one is default unless another is

@@ -17,6 +17,7 @@ infection.json
 phpcs.xml
 phpstan.neon
 phpunit.xml
+prompts.txt
 tests/Unit/ManualTest.php
 todo.txt
 todo*.txt

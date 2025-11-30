@@ -13,9 +13,9 @@
         }
     ],
     "require": {
-        "php": "8.4.*",
+        "php": "8.4.* | 8.5.*",
         "code-distortion/backoff": "^0.1.1",
-        "digital-anomaly/schema": "0.1.0",
+        "digital-anomaly/schema": "0.1.1",
         "phpstan/phpdoc-parser": "^2.1"
     },
     "require-dev": {

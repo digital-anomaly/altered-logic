@@ -6,12 +6,20 @@ namespace DigitalAnomaly\AlteredLogic\Interfaces\Embed;
 
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
+use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
 
 /**
  * Interface for an embed model.
  */
 interface EmbedModelInterface
 {
+    /**
+     * Get the provider.
+     *
+     * @return AiProvidersEnum|string
+     */
+    public function getProvider(): AiProvidersEnum|string;
+
     /**
      * Get the provider credentials.
      *
@@ -62,6 +70,18 @@ interface EmbedModelInterface
     public function getDimensions(): int;
 
 
+
+    /**
+     * Build an embed model profile containing just this model.
+     *
+     * Will return the same object when called multiple times.
+     *
+     * @return EmbedModelProfile
+     */
+    public function getModelProfile(): EmbedModelProfile;
+
+
+
     /**
      * Get the faker.
      *
@@ -82,9 +102,9 @@ interface EmbedModelInterface
 
 
     /**
-     * Register the embed model.
+     * Register this embed model.
      *
-     * The model name will be used if no name is provided.
+     * The model's name will be used if no name is provided.
      *
      * @param string  $name      The name of the model to register.
      * @param boolean $isDefault Whether this is the default model or not (the first one is default unless another is
@@ -92,4 +112,16 @@ interface EmbedModelInterface
      * @return void
      */
     public function register(string $name = '', bool $isDefault = false): void;
+
+
+
+    /**
+     * Build a fingerprint representing the provider + service being used (ostensibly: provider + model).
+     *
+     * Used to store provider details, and to differentiate between different services when working out which messagess
+     * need to be sent.
+     *
+     * @return string
+     */
+    public function serviceFingerprint(): string;
 }

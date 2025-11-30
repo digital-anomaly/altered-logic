@@ -41,19 +41,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Profiles
+    | Default Profiles or Models
     |--------------------------------------------------------------------------
     |
-    | These are the default profiles to use for each feature. The profiles
-    | themselves are defined below.
+    | These are the default profiles and models to use for each feature. The
+    | profiles and models themselves are defined below.
     |
     */
 
-    'default_profiles' => [
-        'embed_model_profile' => 'embed_model_profile_1',
-        'embed_cache_profile' => 'embed_cache_profile_1',
+    'defaults' => [
+        'embed_model_or_profile' => 'embed_model_profile_1', // either an embed_model_profile or embed_model from below
+        'embed_cache_or_profile' => 'embed_cache_profile_1', // either an embed_cache_profile or embed_cache from below
         'doc_profile' => 'doc_profile_1',
-        'modex_model_profile' => 'modex_profile_1',
+        'modex_model_or_profile' => 'modex_profile_1',       // either a modex_model_profile or modex_model from below
     ],
 
 
@@ -73,7 +73,7 @@ return [
     'embed_model_profiles' => [
 
         'embed_model_profile_1' => [
-            'models' => ['openai_text_embedding_3_small'],
+            'models' => ['text-embedding-3-small'],
         ],
     ],
 
@@ -89,13 +89,23 @@ return [
 
     'embed_models' => [
 
-        'openai_text_embedding_3_small' => [
+        'text-embedding-3-small' => [
             'type' => OpenAiEmbedModel::class,
-            'credentials' => 'openai',
             'client' => OpenAiEmbedApiClient::class,
             'url' => env('OPENAI_EMBEDDINGS_URL', 'https://api.openai.com/v1/embeddings'),
-            'custom_headers' => ['hello' => 'world'],
+            'credentials' => 'openai',
+            'custom_headers' => [],
             'model' => 'text-embedding-3-small',
+            'dimensions' => null,
+        ],
+
+        'text-embedding-3-large' => [
+            'type' => OpenAiEmbedModel::class,
+            'client' => OpenAiEmbedApiClient::class,
+            'url' => env('OPENAI_EMBEDDINGS_URL', 'https://api.openai.com/v1/embeddings'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'text-embedding-3-large',
             'dimensions' => null,
         ],
     ],
@@ -233,10 +243,10 @@ return [
     |
     */
 
-    'modex_profiles' => [
+    'modex_model_profiles' => [
 
         'modex_profile_1' => [
-            'models' => ['openai_modex_model'],
+            'models' => ['gpt-5-mini'],
         ],
     ],
 
@@ -251,13 +261,87 @@ return [
 
     'modex_models' => [
 
-        'openai_modex_model' => [
+
+
+        'gpt-5-1' => [
             'type' => OpenAiModexModel::class,
-            'credentials' => 'openai',
             'client' => OpenAiResponsesApiClient::class,
             'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
-            'custom_headers' => ['hello' => 'world'],
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.1',
+        ],
+
+        'gpt-5' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5',
+        ],
+
+        'gpt-5-mini' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
             'model' => 'gpt-5-mini',
+        ],
+
+        'gpt-5-nano' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5-nano',
+        ],
+
+        'gpt-4-1' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-4.1',
+        ],
+
+        'gpt-4-1-mini' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-4.1-mini',
+        ],
+
+        'gpt-4-1-nano' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-4.1-nano',
+        ],
+
+        'gpt-4o' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-4o',
+        ],
+
+        'gpt-4o-mini' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-4o-mini',
         ],
     ],
 

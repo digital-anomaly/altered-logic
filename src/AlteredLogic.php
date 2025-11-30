@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic;
 
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocSearcherInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocStoreInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedCacheInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Providers\CredentialsInterface;
 use DigitalAnomaly\AlteredLogic\Profiles\DocumentProfile;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
@@ -48,6 +53,23 @@ final class AlteredLogic
     }
 
     /**
+     * Register an embed model.
+     *
+     * @param string              $name      The name to register the model under.
+     * @param EmbedModelInterface $model     The model to register.
+     * @param boolean             $isDefault Whether this is the default model.
+     * @return void
+     */
+    public static function registerEmbedModel(
+        string $name,
+        EmbedModelInterface $model,
+        bool $isDefault = false,
+    ): void {
+
+        Registry::embedModels()->register($name, $model, $isDefault);
+    }
+
+    /**
      * Register an embed cache profile.
      *
      * @param string            $name         The profile's name.
@@ -62,6 +84,23 @@ final class AlteredLogic
     ): void {
 
         Registry::embedCacheProfiles()->register($name, $cacheProfile, $isDefault);
+    }
+
+    /**
+     * Register an embed cache.
+     *
+     * @param string              $name      The name to register the cache under.
+     * @param EmbedCacheInterface $cache     The cache to register.
+     * @param boolean             $isDefault Whether this is the default cache.
+     * @return void
+     */
+    public static function registerEmbedCache(
+        string $name,
+        EmbedCacheInterface $cache,
+        bool $isDefault = false,
+    ): void {
+
+        Registry::embedCaches()->register($name, $cache, $isDefault);
     }
 
     /**
@@ -82,7 +121,41 @@ final class AlteredLogic
     }
 
     /**
-     * Register a modex model.
+     * Register a doc-store.
+     *
+     * @param string            $name      The name to register the doc-store under.
+     * @param DocStoreInterface $docStore  The doc-store to register.
+     * @param boolean           $isDefault Whether this is the default doc-store (not currently used).
+     * @return void
+     */
+    public static function registerDocStore(
+        string $name,
+        DocStoreInterface $docStore,
+        bool $isDefault = false,
+    ): void {
+
+        Registry::docStores()->register($name, $docStore, $isDefault);
+    }
+
+    /**
+     * Register a doc-searcher.
+     *
+     * @param string               $name        The name to register the doc-searcher under.
+     * @param DocSearcherInterface $docSearcher The doc-searcher to register.
+     * @param boolean              $isDefault   Whether this is the default doc-searcher (not currently used).
+     * @return void
+     */
+    public static function registerDocSearcher(
+        string $name,
+        DocSearcherInterface $docSearcher,
+        bool $isDefault = false,
+    ): void {
+
+        Registry::docSearchers()->register($name, $docSearcher, $isDefault);
+    }
+
+    /**
+     * Register a modex model profile.
      *
      * @param string            $name         The profile's name.
      * @param ModexModelProfile $modelProfile The profile to register.
@@ -96,6 +169,23 @@ final class AlteredLogic
     ): void {
 
         Registry::modexModelProfiles()->register($name, $modelProfile, $isDefault);
+    }
+
+    /**
+     * Register a modex model.
+     *
+     * @param string              $name      The name to register the model under.
+     * @param ModexModelInterface $model     The model to register.
+     * @param boolean             $isDefault Whether this is the default model.
+     * @return void
+     */
+    public static function registerModexModel(
+        string $name,
+        ModexModelInterface $model,
+        bool $isDefault = false,
+    ): void {
+
+        Registry::modexModels()->register($name, $model, $isDefault);
     }
 
 

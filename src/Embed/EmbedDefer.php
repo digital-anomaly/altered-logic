@@ -69,7 +69,7 @@ final class EmbedDefer extends AbstractEmbed
     }
 
     /**
-     * Flush embeddings - Process all outstanding embeddings (across all models).
+     * Flush embeddings - This processes all outstanding embeddings globally (across all models).
      *
      * @return self
      */

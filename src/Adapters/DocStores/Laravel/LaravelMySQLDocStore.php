@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\DocStores\Laravel;
 
+use DigitalAnomaly\AlteredLogic\Documents\AbstractDocStore;
 use DigitalAnomaly\AlteredLogic\Documents\Document;
 use DigitalAnomaly\AlteredLogic\Exceptions\ResourceException;
-use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocStoreInterface;
 use DigitalAnomaly\AlteredLogic\Support\Laravel\LaravelQueryExceptionHelper;
 use Illuminate\Database\Connection;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -17,7 +17,7 @@ use stdClass;
 /**
  * A MySQL document store that uses Laravel's database connection.
  */
-final class LaravelMySQLDocStore implements DocStoreInterface
+final class LaravelMySQLDocStore extends AbstractDocStore
 {
     /**
      * Constructor.

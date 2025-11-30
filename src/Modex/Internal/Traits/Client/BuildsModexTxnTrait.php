@@ -9,6 +9,7 @@ use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnInputDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnMetaDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnOutputDTO;
+use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexConnectionReference;
 use DigitalAnomaly\AlteredLogic\Support\DTOs\ActiveDurationDTO;
 use DigitalAnomaly\AlteredLogic\Support\Http\DTOs\HttpTxnDTO;
 
@@ -20,17 +21,15 @@ trait BuildsModexTxnTrait
     /**
      * Build a MultimodalTransmissionDTO now that we have the response details.
      *
-     * @param string                 $provider    The provider used.
-     * @param string                 $model       The model that was used.
-     * @param HttpTxnDTO             $httpTxn     The HTTP transmission details.
-     * @param ModexTxnInputDTO       $modexInput  The ModexTxnInputDTO used.
-     * @param ModexTxnOutputDTO|null $modexOutput The output details generated.
-     * @param ModexTokenUsageDTO     $tokenUsage  The token usage details.
+     * @param ModexConnectionReference $connectionReference Details about the connection used.
+     * @param HttpTxnDTO               $httpTxn             The HTTP transmission details.
+     * @param ModexTxnInputDTO         $modexInput          The ModexTxnInputDTO used.
+     * @param ModexTxnOutputDTO|null   $modexOutput         The output details generated.
+     * @param ModexTokenUsageDTO       $tokenUsage          The token usage details.
      * @return ModexTxnDTO
      */
     protected function buildModexTxn(
-        string $provider,
-        string $model,
+        ModexConnectionReference $connectionReference,
         HttpTxnDTO $httpTxn,
         ModexTxnInputDTO $modexInput,
         ?ModexTxnOutputDTO $modexOutput,
@@ -48,8 +47,7 @@ trait BuildsModexTxnTrait
         );
 
         return new ModexTxnDTO(
-            $provider,
-            $model,
+            $connectionReference,
             ($httpTxn->response?->wasSuccessful() ?? false) && $modexOutput !== null,
             $modexInput,
             $modexOutput,

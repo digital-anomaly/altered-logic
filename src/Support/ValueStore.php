@@ -30,7 +30,7 @@ final class ValueStore
 
 
     /**
-     * Get the singleton instance.
+     * Get the singleton instance of this class.
      *
      * @return self
      */
@@ -38,6 +38,7 @@ final class ValueStore
     {
         $instance = FrameworkValueStore::get(self::STORAGE_KEY);
 
+        // if not cached, create a new instance and cache it
         if (!$instance instanceof self) {
 
             $instance = new self();

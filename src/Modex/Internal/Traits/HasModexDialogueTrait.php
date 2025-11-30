@@ -13,6 +13,12 @@ use DigitalAnomaly\AlteredLogic\Modex\Messages\UserMessage;
 
 /**
  * Trait that provides methods to configure the instructions and messages for a Modex request.
+ *
+ * @todo DEPRECATION: This trait is being phased out. Use HasThreadTrait instead.
+ *       Thread now manages messages directly. This trait will be removed in a future version.
+ *       Do not use this trait in new code.
+ *
+ * @deprecated Use HasThreadTrait instead
  */
 trait HasModexDialogueTrait
 {

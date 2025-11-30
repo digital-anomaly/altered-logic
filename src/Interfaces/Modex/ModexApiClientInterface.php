@@ -8,6 +8,7 @@ use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpPendingRequestInterface;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnInputDTO;
+use DigitalAnomaly\AlteredLogic\Modex\Internal\ModexConnectionReference;
 use DigitalAnomaly\AlteredLogic\Support\Http\DTOs\HttpTxnDTO;
 
 /**
@@ -41,9 +42,14 @@ interface ModexApiClientInterface
     /**
      * Build an ModexTxnDTO based on the response from the AI provider.
      *
-     * @param ModexTxnInputDTO $modexInput The ModexTxnInputDTO used.
-     * @param HttpTxnDTO       $httpTxn    The transmission to analyse.
+     * @param ModexTxnInputDTO         $modexInput          The ModexTxnInputDTO used.
+     * @param HttpTxnDTO               $httpTxn             The transmission to analyse.
+     * @param ModexConnectionReference $connectionReference Details about the connection used.
      * @return ModexTxnDTO
      */
-    public function buildResponse(ModexTxnInputDTO $modexInput, HttpTxnDTO $httpTxn): ModexTxnDTO;
+    public function buildResponse(
+        ModexTxnInputDTO $modexInput,
+        HttpTxnDTO $httpTxn,
+        ModexConnectionReference $connectionReference,
+    ): ModexTxnDTO;
 }

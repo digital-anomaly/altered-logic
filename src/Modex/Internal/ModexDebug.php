@@ -507,9 +507,15 @@ final class ModexDebug
             ? \round($httpTxn->duration->durationSeconds, 3) . ' seconds'
             : 'unknown';
 
-        $resolvedModelExtra = $response?->resolvedModel !== '' && $response?->resolvedModel !== $modexTxn->model
-            ? ' (actual: ' . $response?->resolvedModel . ')'
-            : '';
+        $provider = $modexTxn->connectionReference->getProviderString();
+        $model = $modexTxn->connectionReference->getModel();
+
+        $resolvedModelExtra = '';
+        if ($response?->resolvedModel !== '') {
+            $resolvedModelExtra = $response?->resolvedModel !== $modexTxn->connectionReference->getModel()
+                ? " (actual: {$response?->resolvedModel})"
+                : '';
+        }
 
         $tokens = $modexTxn->meta?->tokensUsed;
 
@@ -533,9 +539,11 @@ final class ModexDebug
         $lines[] = 'HTTP RESPONSE INFO:';
         $lines[] = "- Status: {$httpResponse->statusCode} {$httpResponse->statusReason}";
         $lines[] = "- Time:   {$duration}";
-        $lines[] = "- Model:  {$modexTxn->provider} {$modexTxn->model}{$resolvedModelExtra}";
+        $lines[] = "- Model:  {$provider} {$model}{$resolvedModelExtra}";
         if ($modexTxn->success === true) {
-            $lines[] = "- Tokens: {$tokens?->totalTokens} ({$tokens?->inputTokens} input, {$tokens?->outputTokens} output){$cachedTokens}{$maxTokensExtra}";
+            $lines[] = "- Tokens: {$tokens?->totalTokens} "
+                . "({$tokens?->inputTokens} input, {$tokens?->outputTokens} output)"
+                . "{$cachedTokens}{$maxTokensExtra}";
         }
         if ($response?->errorMessage !== null) {
             $lines[] = "- Error:  {$response->errorMessage}";

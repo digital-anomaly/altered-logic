@@ -52,13 +52,30 @@ class StringHelper
      *
      * @param string  $string The string to truncate.
      * @param integer $length The length to truncate to.
+     * @param string  $suffix The suffix to add to the truncated string.
      * @return string
      */
-    public static function truncate(string $string, int $length): string
+    public static function truncate(string $string, int $length, string $suffix = '…'): string
     {
-        return \mb_strlen($string) > $length
-            ? \mb_substr($string, 0, $length) . '…'
-            : $string;
+        $length = \max(1, $length);
+
+        // Use grapheme_substr if available to ensure truncation does not split multi-codepoint grapheme clusters
+        // (such as emoji, accented characters, or complex scripts), which could otherwise result in broken or visually
+        // corrupted characters. Fallback to mb_substr for environments where grapheme_substr is unavailable
+        if (\function_exists('grapheme_substr')) {
+            $truncated = \grapheme_substr($string, 0, $length);
+            $truncated = $truncated !== false
+                ? $truncated
+                : $string;
+        } else {
+            $truncated = \mb_substr($string, 0, $length);
+        }
+
+        if ($truncated !== $string) {
+            return \rtrim($truncated) . $suffix;
+        }
+
+        return $string;
     }
 
     /**
@@ -97,5 +114,21 @@ class StringHelper
         $parameterName = \mb_strtolower($parameterName, 'UTF-8');
 
         return $parameterName;
+    }
+
+    /**
+     * Generate a uniqueness hash from an array of data.
+     *
+     * @param array<string,mixed> $data   The data to generate a hash from.
+     * @param integer             $length The length of the hash to generate.
+     * @return string
+     */
+    public static function generateUniquenessHash(array $data, int $length = 8): string
+    {
+        $length = \max(1, $length);
+
+        $fullHash = \md5(\serialize($data));
+
+        return \substr($fullHash, 0, $length);
     }
 }

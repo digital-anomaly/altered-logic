@@ -69,16 +69,15 @@ final class EmbedExecutor
 
         $temp = $gatedBatch->embedModelProfile->buildEmbedApiClient();
         ['apiClient' => $apiClient, 'embedModel' => $embedModel] = $temp;
+        $connectionReference = EmbedConnectionReference::fromEmbedModel($embedModel);
 
         $faker = self::resolveFaker($gatedBatch, $embedModel);
-
-        $modelProfile = $gatedBatch->embedModelProfile;
 
         $cacheProfile = $gatedBatch->embedCacheProfile;
         $caches = $cacheProfile?->getCaches() ?? [];
 
-        $dimensions = $modelProfile->getDimensions();
-        $tableSuffix = self::buildTableSuffix($modelProfile->getModelName());
+        $dimensions = $embedModel->getDimensions();
+        $tableSuffix = self::buildTableSuffix($embedModel->getModel());
         $debugLevel = $gatedBatch->debugLevel;
 
 
@@ -142,7 +141,7 @@ final class EmbedExecutor
             $batches = BatchHelper::splitIntoBatches($unresolved, $batchSize, $force, false);
             foreach ($batches as $batch) {
 
-                $newEmbeddings = self::fetchFromApi($apiClient, $batch, $debugLevel);
+                $newEmbeddings = self::fetchFromApi($apiClient, $connectionReference, $batch, $debugLevel);
                 $resolved = \array_merge($resolved, $newEmbeddings);
             }
         }
@@ -241,7 +240,11 @@ final class EmbedExecutor
             return [];
         }
 
-        $dimensions = $gatedBatch->embedModelProfile->getDimensions();
+        // get dimensions from the resolved embed model
+        $temp = $gatedBatch->embedModelProfile->buildEmbedApiClient();
+        ['embedModel' => $embedModel] = $temp;
+        $dimensions = $embedModel->getDimensions();
+
         $sources = $gatedBatch->pickSources();
 
         $resolved = [];
@@ -284,13 +287,19 @@ final class EmbedExecutor
      *
      * Returns only the embeddings that were successfully generated.
      *
-     * @param EmbedApiClientInterface $apiClient  The API client to use.
-     * @param string[]                $sources    The items to embed.
-     * @param integer                 $debugLevel The debug level to use.
+     * @param EmbedApiClientInterface  $apiClient           The API client to use.
+     * @param EmbedConnectionReference $connectionReference Details about the connection used.
+     * @param string[]                 $sources             The items to embed.
+     * @param integer                  $debugLevel          The debug level to use.
      * @return array<string,Vector> The embeddings, keyed by their source text.
      */
-    private static function fetchFromApi(EmbedApiClientInterface $apiClient, array $sources, int $debugLevel): array
-    {
+    private static function fetchFromApi(
+        EmbedApiClientInterface $apiClient,
+        EmbedConnectionReference $connectionReference,
+        array $sources,
+        int $debugLevel,
+    ): array {
+
         $embedInput = new EmbedTxnInputDTO($sources);
 
         $debug = new EmbedExecutorDebug($debugLevel);
@@ -304,7 +313,7 @@ final class EmbedExecutor
         $debug->showRequestSummaryDebug($embedInput);
 
         $httpTxn = $apiClient->sendRequest($httpClient, $requestBody);
-        $embedTxn = $apiClient->buildResponse($embedInput, $httpTxn);
+        $embedTxn = $apiClient->buildResponse($embedInput, $httpTxn, $connectionReference);
 
         $responseBody = $httpTxn->response->body ?? '';
         $embeddings = self::pickSuccessfulEmbeddings($sources, $embedTxn->response->embeddings ?? []);

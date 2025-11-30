@@ -32,6 +32,7 @@ class ModexException extends AlteredLogicException
     }
 
 
+
     // /**
     //  * Thrown when the Modex model profile could not be resolved.
     //  *
@@ -65,6 +66,54 @@ class ModexException extends AlteredLogicException
     public static function invalidModexApiClient(string $className): self
     {
         return new self("Invalid modex API client class: {$className}");
+    }
+
+    /**
+     * Exception for when a modex model profile is not found.
+     *
+     * @param string         $name     The name of the profile.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function modexModelProfileNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Modex model profile '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when a modex model is not found.
+     *
+     * @param string         $name     The name of the model.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function modexModelNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Modex model '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when a modex model has not been registered.
+     *
+     * @param string $name The name of the model.
+     * @return self
+     */
+    public static function modexModelNotRegistered(string $name): self
+    {
+        return new self("Modex model '$name' has not been registered");
+    }
+
+    /**
+     * Exception for when no modex model or profile is configured.
+     *
+     * @return self
+     */
+    public static function noModexModelOrProfileConfigured(): self
+    {
+        return new self(
+            "No modex model or profile has been configured. "
+            . "Please specify a model or profile, or configure a default.",
+        );
     }
 
 

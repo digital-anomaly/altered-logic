@@ -7,6 +7,7 @@ namespace DigitalAnomaly\AlteredLogic\Registry;
 use BackedEnum;
 use DigitalAnomaly\AlteredLogic\Common\Enums\FrameworksEnum;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
+use DigitalAnomaly\AlteredLogic\Interfaces\HasRegisteredNameInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Registry\HasDefaultNameInterface;
 use DigitalAnomaly\AlteredLogic\Support\Framework\CapabilityDetector;
 
@@ -67,7 +68,14 @@ abstract class AbstractRegistryGroup
         if ($this->default === '' || $isDefault) {
             $this->default = $name;
         }
+
+        // let the entity know what name it's registered under
+        if ($entity instanceof HasRegisteredNameInterface) {
+            $entity->setRegisteredName($name);
+        }
     }
+
+
 
     /**
      * Get an entity by name. If no name is provided, the default is returned.
@@ -84,15 +92,9 @@ abstract class AbstractRegistryGroup
         bool $allowEmpty = false,
     ): ?object {
 
-        $resolvedName = self::resolveName(
-            $name,
-            null,
-            true,
-            true,
-            false,
-        );
+        $resolvedName = $this->resolveNameForGet($name);
 
-        // if the name couldn't be resolveds
+        // if the name couldn't be resolved
         if ($resolvedName === '') {
 
             if ($allowEmpty) {
@@ -114,15 +116,21 @@ abstract class AbstractRegistryGroup
                 if ($entity !== null) {
 
                     // register manually instead of calling register()
-                    // - so as to avoid setting the default if it's the first entity, but not supposed to be the default
+                    // - so as to avoid setting the default if it's the first entity built, but is not supposed to be
+                    //   the default
                     $this->entities[$resolvedName] = $entity;
 
-                    $defaultName = static::frameworkResolveDefaultEntityName($framework);
+                    $defaultName = static::frameworkResolveDefaultEntityName($framework, true);
                     $defaultName = self::normaliseNameString($defaultName);
 
                     $isDefault = $defaultName !== '' && $resolvedName === $defaultName;
                     if ($isDefault) {
                         $this->default = $resolvedName;
+                    }
+
+                    // let the entity know what name it's registered under
+                    if ($entity instanceof HasRegisteredNameInterface) {
+                        $entity->setRegisteredName($resolvedName);
                     }
                 }
             }
@@ -156,6 +164,70 @@ abstract class AbstractRegistryGroup
     }
 
 
+
+    /**
+     * Get the name of an entity. If no name is provided, the default is returned (this is useful when trying to resolve
+     * the name of the default entity).
+     *
+     * @param string|BackedEnum|null $name          The name of the entity to get.
+     * @param boolean                $allowNotFound Throw an exception if the specified name is not found.
+     * @param boolean                $allowEmpty    Throw an exception if the name is empty.
+     * @return string|null
+     * @throws RegistryException If the name is invalid or the entity cannot be resolved, provided that's not allowed.
+     */
+    public function getName(
+        string|BackedEnum|null $name = null,
+        bool $allowNotFound = false,
+        bool $allowEmpty = false,
+    ): string|null {
+
+        $name = $this->resolveNameForGet($name);
+
+        // check if the entity can be resolved
+        if (self::get($name, $allowNotFound, $allowEmpty) === null) {
+            return null;
+        }
+
+        return $name;
+    }
+
+    /**
+     * Get the name of an entity. If no name is provided, the default is returned (this is useful when trying to resolve
+     * the name of the default entity).
+     *
+     * An exception is thrown if the name is invalid or the entity cannot be resolved.
+     *
+     * @param string|BackedEnum $name The name of the entity to get.
+     * @return string
+     * @throws RegistryException If the name is invalid or the entity cannot be resolved.
+     */
+    public function getNameOrThrow(string|BackedEnum $name): string
+    {
+        $return = self::getName($name, false, false);
+
+        \assert(\is_string($return));
+
+        return $return;
+    }
+
+
+
+    /**
+     * Resolve the name of an entity, for the get() method.
+     *
+     * @param string|BackedEnum|null $name The name of the entity to resolve.
+     * @return string
+     */
+    private function resolveNameForGet(string|BackedEnum|null $name): string
+    {
+        return self::resolveName(
+            $name,
+            null,
+            true,
+            true,
+            false,
+        );
+    }
 
     /**
      * Helper method to resolve a registered name to a string.
@@ -194,7 +266,7 @@ abstract class AbstractRegistryGroup
             $framework = self::pickFramework();
             if ($framework !== null) {
 
-                $defaultName = static::frameworkResolveDefaultEntityName($framework);
+                $defaultName = static::frameworkResolveDefaultEntityName($framework, true);
                 $defaultName = self::normaliseNameString($defaultName);
                 if ($defaultName !== '') {
                     return $defaultName;
@@ -239,7 +311,7 @@ abstract class AbstractRegistryGroup
      *
      * @return FrameworksEnum|null
      */
-    protected static function pickFramework(): ?FrameworksEnum
+    public static function pickFramework(): ?FrameworksEnum
     {
         // todo - add other frameworks
         $frameworks = [
@@ -257,12 +329,39 @@ abstract class AbstractRegistryGroup
 
 
     /**
+     * Get the name of the "default" entity, specified in the framework's config.
+     *
+     * @return string|null
+     */
+    public static function frameworkGetDefaultEntityName(): ?string
+    {
+        $framework = self::pickFramework();
+        if ($framework === null) {
+            return null;
+        }
+
+        $defaultName = static::frameworkResolveDefaultEntityName($framework, false);
+        $defaultName = self::normaliseNameString($defaultName);
+        if ($defaultName === '') {
+            return null;
+        }
+
+        return $defaultName;
+    }
+
+
+
+    /**
      * Resolve the name of the default entity using the framework and its configuration.
      *
-     * @param FrameworksEnum $framework The framework to get the name from.
+     * @param FrameworksEnum $framework   The framework to get the name from.
+     * @param boolean        $checkExists Whether to check if the entity has been defined in the configuration when set.
      * @return string|BackedEnum|null
      */
-    abstract protected function frameworkResolveDefaultEntityName(FrameworksEnum $framework): string|BackedEnum|null;
+    abstract protected static function frameworkResolveDefaultEntityName(
+        FrameworksEnum $framework,
+        bool $checkExists,
+    ): string|BackedEnum|null;
 
     /**
      * Build an entity using the framework and its configuration.
@@ -271,5 +370,5 @@ abstract class AbstractRegistryGroup
      * @param string         $name      The name of the entity to build.
      * @return T|null
      */
-    abstract protected function frameworkBuildEntity(FrameworksEnum $framework, string $name): ?object;
+    abstract protected static function frameworkBuildEntity(FrameworksEnum $framework, string $name): ?object;
 }

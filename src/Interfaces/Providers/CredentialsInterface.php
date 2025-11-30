@@ -21,7 +21,7 @@ interface CredentialsInterface
     public function getDefaultName(): string|AiProvidersEnum;
 
     /**
-     * Register the AI provider credentials.
+     * Register this provider credentials.
      *
      * The provider's default name will be used if no name is provided.
      *
@@ -29,4 +29,16 @@ interface CredentialsInterface
      * @return void
      */
     public function register(string $name = ''): void;
+
+
+
+    /**
+     * Build a fingerprint representing a provider + service's credentials being used.
+     *
+     * Used to store provider details, and to differentiate between different credentials for a provider + service when
+     * working out which messages need to be sent.
+     *
+     * @return string
+     */
+    public function credentialsFingerprint(): string;
 }

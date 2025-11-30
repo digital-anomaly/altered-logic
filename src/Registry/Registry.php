@@ -12,6 +12,10 @@ use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedGatedBatch;
 use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocSearcherInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocStoreInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedCacheInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
+use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Providers\CredentialsInterface;
 use DigitalAnomaly\AlteredLogic\Profiles\DocumentProfile;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
@@ -44,14 +48,29 @@ final class Registry
     /** @var EmbedModelProfileRegistryGroup The available embed model profiles. */
     private EmbedModelProfileRegistryGroup $embedModelProfiles;
 
+    /** @var EmbedModelRegistryGroup The available embed models. */
+    private EmbedModelRegistryGroup $embedModels;
+
     /** @var EmbedCacheProfileRegistryGroup The available embed cache profiles. */
     private EmbedCacheProfileRegistryGroup $embedCacheProfiles;
+
+    /** @var EmbedCacheRegistryGroup The available embed caches. */
+    private EmbedCacheRegistryGroup $embedCaches;
 
     /** @var DocumentProfileRegistryGroup The available document profiles. */
     private DocumentProfileRegistryGroup $documentProfiles;
 
+    /** @var DocStoreRegistryGroup The available doc-stores. */
+    private DocStoreRegistryGroup $docStores;
+
+    /** @var DocSearcherRegistryGroup The available doc-searchers. */
+    private DocSearcherRegistryGroup $docSearchers;
+
     /** @var ModexModelProfileRegistryGroup The available modex model profiles. */
     private ModexModelProfileRegistryGroup $modexModelProfiles;
+
+    /** @var ModexModelRegistryGroup The available modex models. */
+    private ModexModelRegistryGroup $modexModels;
 
 
 
@@ -84,10 +103,18 @@ final class Registry
         $this->modexConfig = new ModexConfigStore();
 
         $this->credentials = new CredentialsRegistryGroup();
+
         $this->embedModelProfiles = new EmbedModelProfileRegistryGroup();
+        $this->embedModels = new EmbedModelRegistryGroup();
         $this->embedCacheProfiles = new EmbedCacheProfileRegistryGroup();
+        $this->embedCaches = new EmbedCacheRegistryGroup();
+
         $this->documentProfiles = new DocumentProfileRegistryGroup();
+        $this->docStores = new DocStoreRegistryGroup();
+        $this->docSearchers = new DocSearcherRegistryGroup();
+
         $this->modexModelProfiles = new ModexModelProfileRegistryGroup();
+        $this->modexModels = new ModexModelRegistryGroup();
     }
 
 
@@ -158,6 +185,10 @@ final class Registry
         return self::instance()->credentials;
     }
 
+
+
+
+
     /**
      * Get the document profiles group.
      *
@@ -166,6 +197,26 @@ final class Registry
     public static function documentProfiles(): AbstractRegistryGroup
     {
         return self::instance()->documentProfiles;
+    }
+
+    /**
+     * Get the doc-store registry group.
+     *
+     * @return AbstractRegistryGroup<DocStoreInterface>
+     */
+    public static function docStores(): AbstractRegistryGroup
+    {
+        return self::instance()->docStores;
+    }
+
+    /**
+     * Get the doc-searcher registry group.
+     *
+     * @return AbstractRegistryGroup<DocSearcherInterface>
+     */
+    public static function docSearchers(): AbstractRegistryGroup
+    {
+        return self::instance()->docSearchers;
     }
 
     /**
@@ -179,6 +230,16 @@ final class Registry
     }
 
     /**
+     * Get the embed models registry group.
+     *
+     * @return AbstractRegistryGroup<EmbedModelInterface>
+     */
+    public static function embedModels(): AbstractRegistryGroup
+    {
+        return self::instance()->embedModels;
+    }
+
+    /**
      * Get the embed cache profiles group.
      *
      * @return AbstractRegistryGroup<EmbedCacheProfile>
@@ -189,6 +250,16 @@ final class Registry
     }
 
     /**
+     * Get the embed caches registry group.
+     *
+     * @return AbstractRegistryGroup<EmbedCacheInterface>
+     */
+    public static function embedCaches(): AbstractRegistryGroup
+    {
+        return self::instance()->embedCaches;
+    }
+
+    /**
      * Get the modex model profiles group.
      *
      * @return AbstractRegistryGroup<ModexModelProfile>
@@ -196,6 +267,16 @@ final class Registry
     public static function modexModelProfiles(): AbstractRegistryGroup
     {
         return self::instance()->modexModelProfiles;
+    }
+
+    /**
+     * Get the modex models registry group.
+     *
+     * @return AbstractRegistryGroup<ModexModelInterface>
+     */
+    public static function modexModels(): AbstractRegistryGroup
+    {
+        return self::instance()->modexModels;
     }
 
 
@@ -229,7 +310,7 @@ final class Registry
             $debugLevel,
         );
 
-        $new = fn(): EmbedGatedBatch => new EmbedGatedBatch(
+        $buildNew = fn(): EmbedGatedBatch => new EmbedGatedBatch(
             $embedModelProfile,
             $embedCacheProfile,
             $embedFaker,
@@ -237,8 +318,8 @@ final class Registry
         );
 
         return $isDeferred
-            ? self::instance()->embedGatedBatchesDeferred[$key] ??= $new()
-            : self::instance()->embedGatedBatches[$key] ??= $new();
+            ? self::instance()->embedGatedBatchesDeferred[$key] ??= $buildNew()
+            : self::instance()->embedGatedBatches[$key] ??= $buildNew();
     }
 
     /**
@@ -320,7 +401,7 @@ final class Registry
             $embedDebugLevel,
         );
 
-        $new = fn(): DocSearchableGatedBatch => new DocSearchableGatedBatch(
+        $buildNew = fn(): DocSearchableGatedBatch => new DocSearchableGatedBatch(
             $documentProfile,
             $docSearcher,
             $embedModelProfile,
@@ -331,8 +412,8 @@ final class Registry
         );
 
         return $isDeferred
-            ? self::instance()->docSearchableGatedBatchesDeferred[$key] ??= $new()
-            : self::instance()->docSearchableGatedBatches[$key] ??= $new();
+            ? self::instance()->docSearchableGatedBatchesDeferred[$key] ??= $buildNew()
+            : self::instance()->docSearchableGatedBatches[$key] ??= $buildNew();
     }
 
     /**

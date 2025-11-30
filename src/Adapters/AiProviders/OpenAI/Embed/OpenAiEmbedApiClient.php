@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\Embed;
 
 use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\Embed\Transformers\OpenAiEmbedApiInboundResponseTransformer;
-use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\OpenAiHelper;
 use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\OpenAiCredentials;
+use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\OpenAiHelper;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTokenUsageDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnInputDTO;
+use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedConnectionReference;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\Traits\Adapter\BuildsEmbedTxnTrait;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Http\HttpClientInterface;
@@ -27,9 +28,6 @@ final class OpenAiEmbedApiClient implements EmbedApiClientInterface
     use BuildsEmbedTxnTrait;
 
 
-
-    /** @var string The AI provider's identifier. */
-    public const string PROVIDER_IDENTIFIER = AiProvidersEnum::OpenAI->value;
 
     /** @var string The url to use when making requests. */
     private readonly string $url;
@@ -177,12 +175,17 @@ final class OpenAiEmbedApiClient implements EmbedApiClientInterface
     /**
      * Build an EmbedTxnDTO based on the response from the AI provider.
      *
-     * @param EmbedTxnInputDTO $embedInput The EmbedsTxnInputDTO used.
-     * @param HttpTxnDTO       $httpTxn    The transmission to analyse.
+     * @param EmbedTxnInputDTO         $embedInput          The EmbedsTxnInputDTO used.
+     * @param HttpTxnDTO               $httpTxn             The transmission to analyse.
+     * @param EmbedConnectionReference $connectionReference Details about the connection used.
      * @return EmbedTxnDTO
      */
-    public function buildResponse(EmbedTxnInputDTO $embedInput, HttpTxnDTO $httpTxn): EmbedTxnDTO
-    {
+    public function buildResponse(
+        EmbedTxnInputDTO $embedInput,
+        HttpTxnDTO $httpTxn,
+        EmbedConnectionReference $connectionReference,
+    ): EmbedTxnDTO {
+
         $responseData = $this->jsonDecodeResponse($httpTxn->response->body ?? '');
 
         $transmissionOutput = (new OpenAiEmbedApiInboundResponseTransformer(
@@ -191,8 +194,7 @@ final class OpenAiEmbedApiClient implements EmbedApiClientInterface
         ))->transformResponse();
 
         return $this->buildEmbedTxn(
-            self::PROVIDER_IDENTIFIER,
-            $this->model,
+            $connectionReference,
             $httpTxn,
             $embedInput,
             $transmissionOutput,

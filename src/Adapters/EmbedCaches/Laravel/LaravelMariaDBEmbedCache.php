@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\EmbedCaches\Laravel;
 
-use DigitalAnomaly\AlteredLogic\Adapters\EmbedCaches\EmbedCacheTrait;
+use DigitalAnomaly\AlteredLogic\Embed\AbstractEmbedCache;
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
 use DigitalAnomaly\AlteredLogic\Exceptions\ResourceException;
-use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedCacheInterface;
 use DigitalAnomaly\AlteredLogic\Support\Laravel\LaravelDatabaseHelper;
 use DigitalAnomaly\AlteredLogic\Support\Laravel\LaravelQueryExceptionHelper;
 use DigitalAnomaly\AlteredLogic\Support\StringHelper;
 use Illuminate\Database\Connection;
-use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * A MariaDB EmbeddCache that uses Laravel's database connection.
  */
-final class LaravelMariaDBEmbedCache implements EmbedCacheInterface
+final class LaravelMariaDBEmbedCache extends AbstractEmbedCache
 {
-    use EmbedCacheTrait;
-
-
-
     /**
      * Constructor.
      *
@@ -93,15 +89,13 @@ final class LaravelMariaDBEmbedCache implements EmbedCacheInterface
     {
         $table = StringHelper::addSuffixToTableName($this->tablePrefix, $tableSuffix);
 
-        try {
-            $rows = $this->getConnection()
-                ->table($table)
-                ->whereIn('source', $sources)
-                ->get();
+        $callback = fn() => $this->getConnection()
+            ->table($table)
+            ->whereIn('source', $sources)
+            ->get();
 
-        } catch (QueryException $e) {
-            throw LaravelQueryExceptionHelper::wrapResourceException($e);
-        }
+        /** @var Collection<integer,stdClass> $rows */
+        $rows = LaravelQueryExceptionHelper::runWrapped($callback);
 
         // start with nulls in order to match the sources array
         $embeddings = \array_combine(
@@ -142,19 +136,14 @@ final class LaravelMariaDBEmbedCache implements EmbedCacheInterface
             ];
         }
 
-        try {
+        $callback = fn() => $this->getConnection()
+            ->table($table)
+            ->upsert(
+                $records,
+                ['source'],  // unique identifier
+                ['embedding'], // columns to update
+            );
 
-            $this->getConnection()
-                ->table($table)
-                ->upsert(
-                    $records,
-                    ['source'],  // unique identifier
-                    ['embedding'], // columns to update
-                );
-
-        } catch (QueryException $e) {
-            // todo use LaravelQueryExceptionHelper::runWrapped() here instead
-            throw LaravelQueryExceptionHelper::wrapResourceException($e);
-        }
+        LaravelQueryExceptionHelper::runWrapped($callback);
     }
 }

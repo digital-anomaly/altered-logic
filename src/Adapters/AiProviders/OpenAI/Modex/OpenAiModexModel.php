@@ -4,19 +4,14 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\Modex;
 
-use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\ModexModelTrait;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
-use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
+use DigitalAnomaly\AlteredLogic\Modex\AbstractModexModel;
 
 /**
  * Represents an OpenAI Modex model.
  */
-final readonly class OpenAiModexModel implements ModexModelInterface
+final class OpenAiModexModel extends AbstractModexModel
 {
-    use ModexModelTrait;
-
-
-
     /**
      * Constructor.
      *
@@ -36,6 +31,7 @@ final readonly class OpenAiModexModel implements ModexModelInterface
         array $customHeaders = [],
         ?string $baseModel = ''
     ) {
+
         $this->storeConfiguration(
             $credentials,
             $client,
@@ -44,5 +40,15 @@ final readonly class OpenAiModexModel implements ModexModelInterface
             $model,
             $baseModel,
         );
+    }
+
+    /**
+     * Get the provider.
+     *
+     * @return AiProvidersEnum|string
+     */
+    public function getProvider(): AiProvidersEnum|string
+    {
+        return AiProvidersEnum::OpenAI;
     }
 }

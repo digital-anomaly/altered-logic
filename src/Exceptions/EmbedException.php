@@ -62,6 +62,88 @@ class EmbedException extends AlteredLogicException
         return new self("Invalid embed API client class: {$className}");
     }
 
+    /**
+     * Exception for when an embed model profile is not found.
+     *
+     * @param string         $name     The name of the profile.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function embedModelProfileNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Embed model profile '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when an embed model is not found.
+     *
+     * @param string         $name     The name of the model.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function embedModelNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Embed model '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when an embed model has not been registered.
+     *
+     * @param string $name The name of the model.
+     * @return self
+     */
+    public static function embedModelNotRegistered(string $name): self
+    {
+        return new self("Embed model '$name' has not been registered");
+    }
+
+    /**
+     * Exception for when no embed model or profile is configured.
+     *
+     * @return self
+     */
+    public static function noEmbedModelOrProfileConfigured(): self
+    {
+        return new self(
+            "No embed model or profile has been configured. "
+            . "Please specify a model or profile, or configure a default.",
+        );
+    }
+
+    /**
+     * Exception for when an embed cache profile is not found.
+     *
+     * @param string         $name     The name of the profile.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function embedCacheProfileNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Embed cache profile '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when an embed cache is not found.
+     *
+     * @param string         $name     The name of the cache.
+     * @param Throwable|null $previous The previous exception.
+     * @return self
+     */
+    public static function embedCacheNotFound(string $name, ?Throwable $previous = null): self
+    {
+        return new self("Embed cache '$name' has not been defined", previous: $previous);
+    }
+
+    /**
+     * Exception for when an embed cache has not been registered.
+     *
+     * @return self
+     */
+    public static function embedCacheNotRegistered(): self
+    {
+        return new self("The embed cache has not been registered");
+    }
+
 
 
 

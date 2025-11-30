@@ -9,6 +9,7 @@ use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnInputDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnMetaDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnOutputDTO;
+use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedConnectionReference;
 use DigitalAnomaly\AlteredLogic\Support\DTOs\ActiveDurationDTO;
 use DigitalAnomaly\AlteredLogic\Support\Http\DTOs\HttpTxnDTO;
 
@@ -20,17 +21,15 @@ trait BuildsEmbedTxnTrait
     /**
      * Build a MultimodalTransmissionDTO now that we have the response details.
      *
-     * @param string                 $provider    The provider used.
-     * @param string                 $model       The model that was used.
-     * @param HttpTxnDTO             $httpTxn     The HTTP transmission details.
-     * @param EmbedTxnInputDTO       $embedInput  The EmbedTxnInputDTO used.
-     * @param EmbedTxnOutputDTO|null $embedOutput The output details generated.
-     * @param EmbedTokenUsageDTO     $tokenUsage  The token usage details.
+     * @param EmbedConnectionReference $connectionReference Details about the connection used.
+     * @param HttpTxnDTO               $httpTxn             The HTTP transmission details.
+     * @param EmbedTxnInputDTO         $embedInput          The EmbedTxnInputDTO used.
+     * @param EmbedTxnOutputDTO|null   $embedOutput         The output details generated.
+     * @param EmbedTokenUsageDTO       $tokenUsage          The token usage details.
      * @return EmbedTxnDTO
      */
     protected function buildEmbedTxn(
-        string $provider,
-        string $model,
+        EmbedConnectionReference $connectionReference,
         HttpTxnDTO $httpTxn,
         EmbedTxnInputDTO $embedInput,
         ?EmbedTxnOutputDTO $embedOutput,
@@ -48,8 +47,7 @@ trait BuildsEmbedTxnTrait
         );
 
         return new EmbedTxnDTO(
-            $provider,
-            $model,
+            $connectionReference,
             ($httpTxn->response?->wasSuccessful() ?? false) && $embedOutput !== null,
             $embedInput,
             $embedOutput,

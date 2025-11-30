@@ -4,20 +4,15 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI;
 
-use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\CredentialsTrait;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
-use DigitalAnomaly\AlteredLogic\Interfaces\Providers\CredentialsInterface;
-use DigitalAnomaly\AlteredLogic\Interfaces\Registry\HasDefaultNameInterface;
+use DigitalAnomaly\AlteredLogic\Credentials\AbstractCredentials;
+use DigitalAnomaly\AlteredLogic\Support\StringHelper;
 
 /**
  * OpenAI provider credentials.
  */
-final readonly class OpenAiCredentials implements CredentialsInterface, HasDefaultNameInterface
+final readonly class OpenAiCredentials extends AbstractCredentials
 {
-    use CredentialsTrait;
-
-
-
     /**
      * Constructor.
      *
@@ -36,7 +31,7 @@ final readonly class OpenAiCredentials implements CredentialsInterface, HasDefau
     /**
      * Get the provider's default name.
      *
-     * This value may come from {@see ProvidersEnum}, or a custom string value.
+     * This value may come from {@see AiProvidersEnum}, or a custom string value.
      *
      * @return AiProvidersEnum
      */
@@ -48,6 +43,8 @@ final readonly class OpenAiCredentials implements CredentialsInterface, HasDefau
     /**
      * Get the API key.
      *
+     * Note: This is not in the interface because it's specific to OpenAI. The OpenAI clients know to use this method.
+     *
      * @return string
      */
     public function getApiKey(): string
@@ -57,6 +54,8 @@ final readonly class OpenAiCredentials implements CredentialsInterface, HasDefau
 
     /**
      * Get the organisation.
+     *
+     * Note: This is not in the interface because it's specific to OpenAI. The OpenAI clients know to use this method.
      *
      * @return string
      */
@@ -68,10 +67,31 @@ final readonly class OpenAiCredentials implements CredentialsInterface, HasDefau
     /**
      * Get the project ID.
      *
+     * Note: This is not in the interface because it's specific to OpenAI. The OpenAI clients know to use this method.
+     *
      * @return string
      */
     public function getProjectId(): string
     {
         return $this->projectId;
+    }
+
+
+
+    /**
+     * Build a fingerprint representing a provider + service's credentials being used.
+     *
+     * Used to store provider details, and to differentiate between different credentials for a provider + service when
+     * working out which messages need to be sent.
+     *
+     * @return string
+     */
+    public function credentialsFingerprint(): string
+    {
+        return StringHelper::generateUniquenessHash([
+            'apiKey' => $this->apiKey,
+            'organisation' => $this->organisation,
+            'projectId' => $this->projectId,
+        ]);
     }
 }

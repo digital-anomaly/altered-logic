@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Support;
 
 /**
- * Helper class for documents.
+ * Helper class for embeddings.
  */
 final class EmbedHelper
 {
@@ -49,8 +49,10 @@ final class EmbedHelper
         // turn non-string sources into JSON
         $source = \json_encode($source);
 
-        return \is_string($source)
-            ? $source
-            : '';
+        if (\is_string($source)) {
+            return $source;
+        }
+
+        return '';
     }
 }

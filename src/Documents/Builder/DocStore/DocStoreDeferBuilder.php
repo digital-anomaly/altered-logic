@@ -17,7 +17,7 @@ final class DocStoreDeferBuilder extends AbstractDocStoreBuilder
 
 
     /**
-     * Flush doc-searchables - Process all outstanding doc-searchables (across all embedding models).
+     * Flush doc-searchables - This processes all outstanding doc-searchables globally (across all models).
      *
      * @return self
      */

@@ -4,21 +4,16 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Adapters\AiProviders\OpenAI\Embed;
 
-use DigitalAnomaly\AlteredLogic\Adapters\AiProviders\EmbedModelTrait;
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Embed\AbstractEmbedModel;
 use DigitalAnomaly\AlteredLogic\Exceptions\EmbedException;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedApiClientInterface;
-use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
 
 /**
  * Represents an OpenAI embedding model.
  */
-final class OpenAiEmbedModel implements EmbedModelInterface
+final class OpenAiEmbedModel extends AbstractEmbedModel
 {
-    use EmbedModelTrait;
-
-
-
     /** @var array<string,integer> The default dimensions for each embedding model. */
     private const array DEFAULT_MODEL_DIMENSIONS = [
         'text-embedding-3-small' => 1536,
@@ -47,6 +42,7 @@ final class OpenAiEmbedModel implements EmbedModelInterface
         ?int $dimensions = null,
         array $customHeaders = [],
     ) {
+
         if ($dimensions === null) {
             $dimensions = self::pickDefaultDimensions($model, self::DEFAULT_MODEL_DIMENSIONS);
         }
@@ -59,5 +55,15 @@ final class OpenAiEmbedModel implements EmbedModelInterface
             $dimensions,
             $customHeaders,
         );
+    }
+
+    /**
+     * Get the provider.
+     *
+     * @return AiProvidersEnum|string
+     */
+    public function getProvider(): AiProvidersEnum|string
+    {
+        return AiProvidersEnum::OpenAI;
     }
 }

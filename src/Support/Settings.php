@@ -10,5 +10,5 @@ namespace DigitalAnomaly\AlteredLogic\Support;
 final class Settings
 {
     /** @var string The version of the package. */
-    public const string VERSION = '0.1.0';
+    public const string VERSION = '0.1.1';
 }

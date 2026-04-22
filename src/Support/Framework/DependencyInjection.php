@@ -33,13 +33,23 @@ final class DependencyInjection
             throw DependencyInjectonException::classDoesNotExist($class);
         }
 
+        // use the framework's replacement for the class, if it has one
+        // todo: add tests for this pathway:
+        //       - where the framework has a replacement for the class, to make sure that is used instead
+        if (self::frameworkHasReplacementForClass($class)) {
+            $instance = self::useFrameworkReplacementForClass($class);
+            if (\is_object($instance)) {
+                return $instance;
+            }
+        }
+
+
+
         // no constructor - just instantiate the class
         $reflectionMethod = new ReflectionClass($class)->getConstructor();
         if ($reflectionMethod === null) {
             return new $class();
         }
-
-
 
         // resolve the constructor parameters and instantiate the class
         try {
@@ -80,6 +90,52 @@ final class DependencyInjection
         }
 
         return \call_user_func_array($callable, $params);
+    }
+
+
+
+    /**
+     * Check if the framework has a replacement registered for the class.
+     *
+     * @param string $class The class to check.
+     * @return boolean
+     */
+    private static function frameworkHasReplacementForClass(string $class): bool
+    {
+        $framework = CapabilityDetector::pickFunctionalityToUse([
+            FrameworksEnum::Laravel,
+            FrameworksEnum::NoFramework,
+        ]);
+
+        if ($framework === FrameworksEnum::Laravel) {
+            return \app()->has($class);
+        }
+
+        // todo - add other frameworks
+
+        return false;
+    }
+
+    /**
+     * Use the framework's replacement for the class.
+     *
+     * @param string $class The class to use the replacement for.
+     * @return mixed
+     */
+    private static function useFrameworkReplacementForClass(string $class): mixed
+    {
+        $framework = CapabilityDetector::pickFunctionalityToUse([
+            FrameworksEnum::Laravel,
+            FrameworksEnum::NoFramework,
+        ]);
+
+        if ($framework === FrameworksEnum::Laravel) {
+            return \app()->make($class);
+        }
+
+        // todo - add other frameworks
+
+        return null;
     }
 
 

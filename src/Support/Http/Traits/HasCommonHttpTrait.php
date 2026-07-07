@@ -30,7 +30,7 @@ trait HasCommonHttpTrait
     private int|float $connectionTimeoutSeconds = 3;
 
     /** @var integer|float The timeout when receiving data. */
-    private int|float $receiveTimeoutSeconds = 120;
+    private int|float $receiveTimeoutSeconds = 9999;
 
     /** @var Backoff|null The backoff strategy to use. */
     private ?Backoff $backoff = null;

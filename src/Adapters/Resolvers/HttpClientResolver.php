@@ -38,7 +38,7 @@ final class HttpClientResolver
         };
 
         $client->withConnectTimeout(3)
-            ->withReceiveTimeout(120)
+            ->withReceiveTimeout(9999)
             ->withBackoff($backoff);
 
         return $client;

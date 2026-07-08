@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Embed\Internal;
 
-use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
+use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\DTOs\EmbedGatedBatchIdentityDTO;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\EmbedGatedBatchInterface;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\EmbedGatedBatchTrait;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\PendingEmbedding;
-use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
-use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
 use DigitalAnomaly\AlteredLogic\Support\EmbedHelper;
 use DigitalAnomaly\AlteredLogic\Support\GatedBatch\Batch\AbstractGatedBatch;
 use DigitalAnomaly\AlteredLogic\Support\GatedBatch\Status\GatedBatchStatusInterface;
@@ -36,23 +34,15 @@ final class EmbedGatedBatch extends AbstractGatedBatch implements
     /**
      * Create a new batch.
      *
-     * @param EmbedModelProfile                  $embedModelProfile The model profile to use.
-     * @param EmbedCacheProfile|null             $embedCacheProfile The cache profile to use.
-     * @param EmbedFaker|null                    $embedFaker        The faker to use when generating embeddings.
-     * @param integer                            $debugLevel        The debug level to use.
-     * @param array<integer,EmbedGatedBatchItem> $items             The items to add to the batch.
+     * @param EmbedGatedBatchIdentityDTO         $identity The identity of the batch.
+     * @param array<integer,EmbedGatedBatchItem> $items    The items to add to the batch.
      */
-    public function __construct(
-        EmbedModelProfile $embedModelProfile,
-        ?EmbedCacheProfile $embedCacheProfile,
-        ?EmbedFaker $embedFaker,
-        int $debugLevel,
-        array $items = [],
-    ) {
-        $this->embedModelProfile = $embedModelProfile;
-        $this->embedCacheProfile = $embedCacheProfile;
-        $this->embedFaker = $embedFaker;
-        $this->debugLevel = $debugLevel;
+    public function __construct(EmbedGatedBatchIdentityDTO $identity, array $items = [])
+    {
+        $this->embedModelProfile = $identity->embedModelProfile;
+        $this->embedCacheProfile = $identity->embedCacheProfile;
+        $this->embedFaker = $identity->embedFaker;
+        $this->debugLevel = $identity->debugLevel;
 
         $this->replaceItems($items);
     }

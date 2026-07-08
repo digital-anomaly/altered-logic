@@ -7,6 +7,7 @@ namespace DigitalAnomaly\AlteredLogic\Embed;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedExecutor;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedGatedBatch;
+use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\DTOs\EmbedGatedBatchIdentityDTO;
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
 use DigitalAnomaly\AlteredLogic\Exceptions\EmbedException;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
@@ -224,13 +225,14 @@ abstract class AbstractEmbed
             $debugLevel = 0;
         }
 
-        return Registry::getEmbedGatedBatch( // todo - this will create a new key every time because the profile object is new every time, when using a model instead of a profile
-            $this->isDeferred,
+        $identity = new EmbedGatedBatchIdentityDTO(
             $this->resolveModelProfile(),
             $this->resolveCacheProfile(),
             $this->faker,
             $debugLevel,
         );
+
+        return Registry::getEmbedGatedBatch($this->isDeferred, $identity);
     }
 
     /**

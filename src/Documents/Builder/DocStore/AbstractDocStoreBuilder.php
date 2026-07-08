@@ -7,6 +7,7 @@ namespace DigitalAnomaly\AlteredLogic\Documents\Builder\DocStore;
 use DigitalAnomaly\AlteredLogic\Documents\Document;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableExecutor;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch;
+use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DTOs\DocSearchableGatedBatchIdentityDTO;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Exceptions\DocumentException;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
@@ -597,8 +598,7 @@ class AbstractDocStoreBuilder
             $embedDebugLevel = 0;
         }
 
-        return Registry::getDocSearchableGatedBatch(
-            $this->isDeferred,
+        $identity = new DocSearchableGatedBatchIdentityDTO(
             $documentProfile,
             $docSearcher,
             $embedModelProfile,
@@ -607,6 +607,8 @@ class AbstractDocStoreBuilder
             $docDebugLevel,
             $embedDebugLevel,
         );
+
+        return Registry::getDocSearchableGatedBatch($this->isDeferred, $identity);
     }
 
 

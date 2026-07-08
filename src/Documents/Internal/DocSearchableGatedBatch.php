@@ -7,15 +7,11 @@ namespace DigitalAnomaly\AlteredLogic\Documents\Internal;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DocSearchable;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DocSearchableGatedBatchInterface;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DocSearchableGatedBatchTrait;
-use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
+use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DTOs\DocSearchableGatedBatchIdentityDTO;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedGatedBatchItem;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\EmbedGatedBatchInterface;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\EmbedGatedBatchTrait;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\PendingEmbedding;
-use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocSearcherInterface;
-use DigitalAnomaly\AlteredLogic\Profiles\DocumentProfile;
-use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
-use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
 use DigitalAnomaly\AlteredLogic\Support\EmbedHelper;
 use DigitalAnomaly\AlteredLogic\Support\GatedBatch\Batch\AbstractGatedBatch;
 use DigitalAnomaly\AlteredLogic\Support\GatedBatch\Status\GatedBatchStatusInterface;
@@ -52,33 +48,19 @@ final class DocSearchableGatedBatch extends AbstractGatedBatch implements
     /**
      * Create a new batch.
      *
-     * @param DocumentProfile                            $documentProfile   The document profile to use.
-     * @param DocSearcherInterface                       $docSearcher       The doc-searcher to store searchables with.
-     * @param EmbedModelProfile|null                     $embedModelProfile The model profile to use.
-     * @param EmbedCacheProfile|null                     $embedCacheProfile The cache profile to use.
-     * @param EmbedFaker|null                            $embedFaker        The faker to use when generating embeddings.
-     * @param integer                                    $docDebugLevel     The doc debug level to use.
-     * @param integer                                    $embedDebugLevel   The embed debug level to use.
-     * @param array<integer,DocSearchableGatedBatchItem> $items             The items to add to the batch.
+     * @param DocSearchableGatedBatchIdentityDTO         $identity The identity of the batch.
+     * @param array<integer,DocSearchableGatedBatchItem> $items    The items to add to the batch.
      */
-    public function __construct(
-        DocumentProfile $documentProfile,
-        DocSearcherInterface $docSearcher,
-        ?EmbedModelProfile $embedModelProfile,
-        ?EmbedCacheProfile $embedCacheProfile,
-        ?EmbedFaker $embedFaker,
-        int $docDebugLevel,
-        int $embedDebugLevel,
-        array $items = [],
-    ) {
-        $this->documentProfile = $documentProfile;
-        $this->docSearcher = $docSearcher;
-        $this->docDebugLevel = $docDebugLevel;
+    public function __construct(DocSearchableGatedBatchIdentityDTO $identity, array $items = [])
+    {
+        $this->documentProfile = $identity->documentProfile;
+        $this->docSearcher = $identity->docSearcher;
+        $this->docDebugLevel = $identity->docDebugLevel;
 
-        $this->embedModelProfile = $embedModelProfile;
-        $this->embedCacheProfile = $embedCacheProfile;
-        $this->embedFaker = $embedFaker;
-        $this->debugLevel = $embedDebugLevel;
+        $this->embedModelProfile = $identity->embedModelProfile;
+        $this->embedCacheProfile = $identity->embedCacheProfile;
+        $this->embedFaker = $identity->embedFaker;
+        $this->debugLevel = $identity->embedDebugLevel;
 
         $this->replaceItems($items);
     }

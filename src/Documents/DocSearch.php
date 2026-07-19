@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Documents;
 
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Documents\DocResultSet;
 use DigitalAnomaly\AlteredLogic\Documents\Document;
 use DigitalAnomaly\AlteredLogic\Exceptions\DocumentException;
@@ -28,6 +30,9 @@ final class DocSearch
 
     /** @var string[] The doc-searchers to use. */
     private array $docSearchers = [];
+
+    /** @var CredentialsOverride|null The credentials override to use (instead of each model's own credentials). */
+    private ?CredentialsOverride $credentialsOverride = null;
 
 
 
@@ -92,6 +97,24 @@ final class DocSearch
     public function useSearcher(string $docSearcher): self
     {
         $this->docSearchers = [$docSearcher];
+
+        return $this;
+    }
+
+    /**
+     * Specify the credentials to use, overriding each model's configured credentials.
+     *
+     * Composes with the profile/searcher - it clears nothing. Pass null to clear the override.
+     *
+     * @param CredentialsOverride|string|AiProvidersEnum|array<string,string|AiProvidersEnum>|null $credentials A
+     *        credentials name to use for all providers, or a map of provider name => credentials name. Map values are
+     *        registered credentials names, but map keys are matched against each model's getProvider() value (they're
+     *        not looked up anywhere) - an unrecognised key is ignored silently.
+     * @return self
+     */
+    public function credentials(CredentialsOverride|string|AiProvidersEnum|array|null $credentials): self
+    {
+        $this->credentialsOverride = CredentialsOverride::from($credentials);
 
         return $this;
     }
@@ -183,6 +206,7 @@ final class DocSearch
                 EmbedHelper::normaliseSource($source),
                 $limit,
                 $this->debugLevel,
+                $this->credentialsOverride,
             );
             $docResultSets[] = RetryHelper::docSearcherTry($work, $docSearcher);
         }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Documents\Builder\DocStore;
 
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Documents\Document;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableExecutor;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch;
@@ -42,6 +44,9 @@ class AbstractDocStoreBuilder
 
     /** @var EmbedFaker|null The faker to use when generating embeddings. */
     private ?EmbedFaker $embedFaker = null;
+
+    /** @var CredentialsOverride|null The credentials override to use (instead of each model's own credentials). */
+    private ?CredentialsOverride $credentialsOverride = null;
 
 
 
@@ -118,6 +123,24 @@ class AbstractDocStoreBuilder
     public function useEmbedCacheProfile(?string $cacheProfile): static
     {
         $this->embedCacheProfile = $cacheProfile;
+
+        return $this;
+    }
+
+    /**
+     * Specify the credentials to use, overriding each model's configured credentials.
+     *
+     * Composes with the model profile - it clears nothing. Pass null to clear the override.
+     *
+     * @param CredentialsOverride|string|AiProvidersEnum|array<string,string|AiProvidersEnum>|null $credentials A
+     *        credentials name to use for all providers, or a map of provider name => credentials name. Map values are
+     *        registered credentials names, but map keys are matched against each model's getProvider() value (they're
+     *        not looked up anywhere) - an unrecognised key is ignored silently.
+     * @return $this
+     */
+    public function credentials(CredentialsOverride|string|AiProvidersEnum|array|null $credentials): static
+    {
+        $this->credentialsOverride = CredentialsOverride::from($credentials);
 
         return $this;
     }
@@ -604,6 +627,7 @@ class AbstractDocStoreBuilder
             $embedModelProfile,
             $embedCacheProfile,
             $this->embedFaker,
+            $this->credentialsOverride,
             $docDebugLevel,
             $embedDebugLevel,
         );

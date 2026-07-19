@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Embed\Internal;
 
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Interfaces\Embed\EmbedModelInterface;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 
@@ -36,12 +37,18 @@ final readonly class EmbedConnectionReference
     /**
      * Create a EmbedConnectionReference from a EmbedModel.
      *
-     * @param EmbedModelInterface $embedModel The Embed model to build from.
+     * @param EmbedModelInterface      $embedModel          The Embed model to build from.
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of the model's own.
      * @return self
      */
-    public static function fromEmbedModel(EmbedModelInterface $embedModel): self
-    {
-        $credentials = Registry::credentials()->getOrThrow($embedModel->getCredentials());
+    public static function fromEmbedModel(
+        EmbedModelInterface $embedModel,
+        ?CredentialsOverride $credentialsOverride = null,
+    ): self {
+
+        $credentialsName = $credentialsOverride?->pickCredentialsName($embedModel->getProvider())
+            ?? $embedModel->getCredentials();
+        $credentials = Registry::credentials()->getOrThrow($credentialsName);
 
         return new self(
             $embedModel->getProvider(),

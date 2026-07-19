@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Profiles;
 
 use DigitalAnomaly\AlteredLogic\AlteredLogic;
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
+use DigitalAnomaly\AlteredLogic\Exceptions\CredentialsException;
 use DigitalAnomaly\AlteredLogic\Exceptions\ModexException;
+use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
@@ -71,10 +75,12 @@ final class ModexModelProfile
     /**
      * Resolve and build the Modex API client.
      *
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of each model's own.
      * @return array{apiClient:ModexApiClientInterface,modexModel:ModexModelInterface}
      * @throws ModexException If the Modex API client could not be resolved.
+     * @throws CredentialsException If a matched override's credentials name isn't registered.
      */
-    public function buildModexApiClient(): array
+    public function buildModexApiClient(?CredentialsOverride $credentialsOverride = null): array
     {
         foreach ($this->modelPreferences as $modelName) {
 
@@ -84,10 +90,27 @@ final class ModexModelProfile
                 continue; // skip if model not registered
             }
 
-            // resolve the credentials from the registry
-            $credentials = Registry::credentials()->get($modelPreference->getCredentials(), true);
-            if ($credentials === null) {
-                continue; // skip if credentials not found
+            // resolve the credentials from the registry - a matched override must resolve or throw (never fall back),
+            // otherwise fall back to the model's own credentials (skipping the preference if they're not found)
+            $overrideName = $credentialsOverride?->pickCredentialsName($modelPreference->getProvider());
+            if ($overrideName !== null) {
+                try {
+                    $credentials = Registry::credentials()->getOrThrow($overrideName);
+                } catch (RegistryException $e) {
+                    $provider = $modelPreference->getProvider();
+                    throw CredentialsException::overrideCredentialsNotFound(
+                        $overrideName,
+                        $modelName,
+                        $provider instanceof AiProvidersEnum ? $provider->value : $provider,
+                        $credentialsOverride->isUniversal(),
+                        $e,
+                    );
+                }
+            } else {
+                $credentials = Registry::credentials()->get($modelPreference->getCredentials(), true);
+                if ($credentials === null) {
+                    continue; // skip if credentials not found
+                }
             }
 
             $clientClass = $modelPreference->getClientClass();

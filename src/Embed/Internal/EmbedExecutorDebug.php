@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Embed\Internal;
 
 use DigitalAnomaly\AlteredLogic\Common\HasDebugOutputTrait;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnDTO;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnInputDTO;
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
@@ -40,6 +41,36 @@ final class EmbedExecutorDebug
         $messages = \array_filter($messages, fn(string $message): bool => $message !== '');
 
         $this->debugInfo1a(\implode(\PHP_EOL . \PHP_EOL, $messages), "EMBED SUMMARY");
+    }
+
+    /**
+     * Show which credentials were selected (name only - no secret material).
+     *
+     * An override that was specified but doesn't cover this model's provider is called out explicitly - otherwise it's
+     * indistinguishable from not having specified one at all, which is the symptom of a mistyped provider key.
+     *
+     * @param string                   $credentialsName     The name of the credentials being used.
+     * @param CredentialsOverride|null $credentialsOverride The override specified via ->credentials(), if any.
+     * @param string                   $provider            The provider the model belongs to.
+     * @return void
+     */
+    public function showCredentialsDebug(
+        string $credentialsName,
+        ?CredentialsOverride $credentialsOverride,
+        string $provider,
+    ): void {
+
+        if (!$this->debugLevelIsAtLeast(1)) {
+            return;
+        }
+
+        $source = match (true) {
+            $credentialsOverride === null => 'model default',
+            $credentialsOverride->pickCredentialsName($provider) !== null => 'override',
+            default => "model default - the ->credentials() override doesn't cover provider '{$provider}'",
+        };
+
+        $this->debugInfo1a("'{$credentialsName}' ({$source})", "EMBED CREDENTIALS");
     }
 
     /**

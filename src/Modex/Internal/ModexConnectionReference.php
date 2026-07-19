@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Modex\Internal;
 
 use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
 use DigitalAnomaly\AlteredLogic\Registry\Registry;
 
@@ -36,12 +37,18 @@ final readonly class ModexConnectionReference
     /**
      * Create a ModexConnectionReference from a ModexModel.
      *
-     * @param ModexModelInterface $modexModel The Modex model to build from.
+     * @param ModexModelInterface      $modexModel          The Modex model to build from.
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of the model's own.
      * @return self
      */
-    public static function fromModexModel(ModexModelInterface $modexModel): self
-    {
-        $credentials = Registry::credentials()->getOrThrow($modexModel->getCredentials());
+    public static function fromModexModel(
+        ModexModelInterface $modexModel,
+        ?CredentialsOverride $credentialsOverride = null,
+    ): self {
+
+        $credentialsName = $credentialsOverride?->pickCredentialsName($modexModel->getProvider())
+            ?? $modexModel->getCredentials();
+        $credentials = Registry::credentials()->getOrThrow($credentialsName);
 
         return new self(
             $modexModel->getProvider(),

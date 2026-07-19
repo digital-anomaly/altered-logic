@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Modex\Internal\Traits;
 
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Exceptions\ModexException;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
 use DigitalAnomaly\AlteredLogic\Profiles\ModexModelProfile;
@@ -19,6 +21,9 @@ trait HasProfileConfigurationTrait
 
     /** @var string|null The model to use directly (instead of using a model profile). */
     public ?string $modelName = null;
+
+    /** @var CredentialsOverride|null The credentials override to use (instead of each model's own credentials). */
+    public ?CredentialsOverride $credentialsOverride = null;
 
 
 
@@ -52,6 +57,24 @@ trait HasProfileConfigurationTrait
         $this->modelName = $modelName !== ''
             ? $modelName
             : null;
+
+        return $this;
+    }
+
+    /**
+     * Specify the credentials to use, overriding each model's configured credentials.
+     *
+     * Composes with model()/modelProfile() - it clears neither. Pass null to clear the override.
+     *
+     * @param CredentialsOverride|string|AiProvidersEnum|array<string,string|AiProvidersEnum>|null $credentials A
+     *        credentials name to use for all providers, or a map of provider name => credentials name. Map values are
+     *        registered credentials names, but map keys are matched against each model's getProvider() value (they're
+     *        not looked up anywhere) - an unrecognised key is ignored silently.
+     * @return self
+     */
+    public function credentials(CredentialsOverride|string|AiProvidersEnum|array|null $credentials): self
+    {
+        $this->credentialsOverride = CredentialsOverride::from($credentials);
 
         return $this;
     }

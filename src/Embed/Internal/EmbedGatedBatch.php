@@ -42,6 +42,7 @@ final class EmbedGatedBatch extends AbstractGatedBatch implements
         $this->embedModelProfile = $identity->embedModelProfile;
         $this->embedCacheProfile = $identity->embedCacheProfile;
         $this->embedFaker = $identity->embedFaker;
+        $this->credentialsOverride = $identity->credentialsOverride;
         $this->debugLevel = $identity->debugLevel;
 
         $this->replaceItems($items);

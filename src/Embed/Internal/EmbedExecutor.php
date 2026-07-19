@@ -6,6 +6,7 @@ namespace DigitalAnomaly\AlteredLogic\Embed\Internal;
 
 use CodeDistortion\Backoff\Backoff;
 use DigitalAnomaly\AlteredLogic\Adapters\Resolvers\HttpClientResolver;
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
 use DigitalAnomaly\AlteredLogic\Embed\DTOs\Transmission\EmbedTxnInputDTO;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\EmbedGatedBatchInterface;
@@ -67,9 +68,9 @@ final class EmbedExecutor
             return [];
         }
 
-        $temp = $gatedBatch->embedModelProfile->buildEmbedApiClient();
+        $temp = $gatedBatch->embedModelProfile->buildEmbedApiClient($gatedBatch->credentialsOverride);
         ['apiClient' => $apiClient, 'embedModel' => $embedModel] = $temp;
-        $connectionReference = EmbedConnectionReference::fromEmbedModel($embedModel);
+        $connectionReference = EmbedConnectionReference::fromEmbedModel($embedModel, $gatedBatch->credentialsOverride);
 
         $faker = self::resolveFaker($gatedBatch, $embedModel);
 
@@ -80,11 +81,20 @@ final class EmbedExecutor
         $tableSuffix = self::buildTableSuffix($embedModel->getModel());
         $debugLevel = $gatedBatch->debugLevel;
 
+        $modelProvider = $embedModel->getProvider();
+        $provider = $modelProvider instanceof AiProvidersEnum ? $modelProvider->value : $modelProvider;
+        $overrideName = $gatedBatch->credentialsOverride?->pickCredentialsName($modelProvider);
+        $modelCredentials = $embedModel->getCredentials();
+        $credentialsName = $overrideName ?? ($modelCredentials instanceof AiProvidersEnum
+            ? $modelCredentials->value
+            : $modelCredentials);
 
 
-        $resolved = self::applyFakes($gatedBatch, $faker);
+
+        $resolved = self::applyFakes($gatedBatch, $faker, $embedModel);
 
         $debug = new EmbedExecutorDebug($debugLevel);
+        $debug->showCredentialsDebug($credentialsName, $gatedBatch->credentialsOverride, $provider);
         $debug->showFakedEmbeddingsDebug($resolved);
 
 
@@ -228,10 +238,15 @@ final class EmbedExecutor
      *
      * @param EmbedGatedBatchInterface $gatedBatch The batch to process.
      * @param EmbedFaker|null          $faker      The faker to use.
+     * @param EmbedModelInterface      $embedModel The already-resolved embed model (built with any override applied).
      * @return array<string,Vector> The embeddings, keyed by their source text.
      */
-    private static function applyFakes(EmbedGatedBatchInterface $gatedBatch, ?EmbedFaker $faker): array
-    {
+    private static function applyFakes(
+        EmbedGatedBatchInterface $gatedBatch,
+        ?EmbedFaker $faker,
+        EmbedModelInterface $embedModel,
+    ): array {
+
         if ($faker === null) {
             return [];
         }
@@ -240,9 +255,7 @@ final class EmbedExecutor
             return [];
         }
 
-        // get dimensions from the resolved embed model
-        $temp = $gatedBatch->embedModelProfile->buildEmbedApiClient();
-        ['embedModel' => $embedModel] = $temp;
+        // get dimensions from the already-resolved embed model (honours the credentials override)
         $dimensions = $embedModel->getDimensions();
 
         $sources = $gatedBatch->pickSources();

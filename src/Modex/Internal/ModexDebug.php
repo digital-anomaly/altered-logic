@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DigitalAnomaly\AlteredLogic\Modex\Internal;
 
 use DigitalAnomaly\AlteredLogic\Common\HasDebugOutputTrait;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\Messages\MessageInterface;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnDTO;
 use DigitalAnomaly\AlteredLogic\Modex\DTOs\ModexTxnInputDTO;
@@ -30,7 +31,7 @@ use DigitalAnomaly\Schema\Types\NativeType;
 use ReflectionClass;
 
 /**
- * Generates debug output for the EmbedExecutor.
+ * Generates debug output for the Modex.
  */
 final class ModexDebug
 {
@@ -41,12 +42,21 @@ final class ModexDebug
     /**
      * Show debug information about a request.
      *
-     * @param integer          $requestNumber The request number.
-     * @param ModexTxnInputDTO $modexInput    The ModexTxnInputDTO used.
+     * @param integer                  $requestNumber       The request number.
+     * @param ModexTxnInputDTO         $modexInput          The ModexTxnInputDTO used.
+     * @param string                   $credentialsName     The name of the credentials being used.
+     * @param CredentialsOverride|null $credentialsOverride The override specified via ->credentials(), if any.
+     * @param string                   $provider            The provider the model belongs to.
      * @return void
      */
-    public function showRequestSummaryDebug(int $requestNumber, ModexTxnInputDTO $modexInput): void
-    {
+    public function showRequestSummaryDebug(
+        int $requestNumber,
+        ModexTxnInputDTO $modexInput,
+        string $credentialsName,
+        ?CredentialsOverride $credentialsOverride,
+        string $provider,
+    ): void {
+
         if (!$this->debugLevelIsAtLeast(1)) {
             return;
         }
@@ -59,6 +69,7 @@ final class ModexDebug
             $this->debugBuildToolsMessage($modexInput->schemas),
             $this->debugBuildResponseTypeMessage($modexInput->schemas->structuredResponse),
             $this->debugBuildOtherSettingsMessage($modexInput->settings),
+            $this->debugBuildCredentialsMessage($credentialsName, $credentialsOverride, $provider),
         ];
         $messages = \array_filter($messages, fn(string $message): bool => $message !== '');
 
@@ -474,6 +485,34 @@ final class ModexDebug
         }
 
         return 'OTHER SETTINGS: ' . \PHP_EOL . \implode(\PHP_EOL, $otherSettings);
+    }
+
+    /**
+     * Build readable information about the credentials being used.
+     *
+     * Names only - no secret material, matching the codebase's auth-header masking posture.
+     *
+     * An override that was specified but doesn't cover this model's provider is called out explicitly - otherwise it's
+     * indistinguishable from not having specified one at all, which is the symptom of a mistyped provider key.
+     *
+     * @param string                   $credentialsName     The name of the credentials being used.
+     * @param CredentialsOverride|null $credentialsOverride The override specified via ->credentials(), if any.
+     * @param string                   $provider            The provider the model belongs to.
+     * @return string
+     */
+    private function debugBuildCredentialsMessage(
+        string $credentialsName,
+        ?CredentialsOverride $credentialsOverride,
+        string $provider,
+    ): string {
+
+        $source = match (true) {
+            $credentialsOverride === null => '(model default)',
+            $credentialsOverride->pickCredentialsName($provider) !== null => '(override)',
+            default => "(model default - the ->credentials() override doesn't cover provider '{$provider}')",
+        };
+
+        return 'CREDENTIALS: ' . \PHP_EOL . "- '{$credentialsName}' {$source}";
     }
 
 

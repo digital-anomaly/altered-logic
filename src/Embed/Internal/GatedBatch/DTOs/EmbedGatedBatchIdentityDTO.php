@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch\DTOs;
 
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedModelProfile;
@@ -16,15 +17,17 @@ final readonly class EmbedGatedBatchIdentityDTO
     /**
      * Constructor.
      *
-     * @param EmbedModelProfile      $embedModelProfile The model profile to use.
-     * @param EmbedCacheProfile|null $embedCacheProfile The cache profile to use.
-     * @param EmbedFaker|null        $embedFaker        The faker to use when generating embeddings.
-     * @param integer                $debugLevel        The debug level to use.
+     * @param EmbedModelProfile        $embedModelProfile   The model profile to use.
+     * @param EmbedCacheProfile|null   $embedCacheProfile   The cache profile to use.
+     * @param EmbedFaker|null          $embedFaker          The faker to use when generating embeddings.
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of each model's own.
+     * @param integer                  $debugLevel          The debug level to use.
      */
     public function __construct(
         public EmbedModelProfile $embedModelProfile,
         public ?EmbedCacheProfile $embedCacheProfile,
         public ?EmbedFaker $embedFaker,
+        public ?CredentialsOverride $credentialsOverride,
         public int $debugLevel,
     ) {}
 
@@ -45,6 +48,9 @@ final readonly class EmbedGatedBatchIdentityDTO
             ? \spl_object_id($this->embedFaker)
             : '';
 
-        return "{$embedModelProfileKey}:{$embedCacheProfileKey}:{$fakerKey}:{$this->debugLevel}";
+        // value-based (not spl_object_id) so identical overrides pool together and different overrides never merge
+        $credentialsOverrideKey = $this->credentialsOverride?->fingerprint() ?? '';
+
+        return "{$embedModelProfileKey}:{$embedCacheProfileKey}:{$fakerKey}:{$credentialsOverrideKey}:{$this->debugLevel}";
     }
 }

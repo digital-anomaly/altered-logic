@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Embed\Internal\GatedBatch;
 
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Vector;
 use DigitalAnomaly\AlteredLogic\Profiles\EmbedCacheProfile;
@@ -22,6 +23,9 @@ interface EmbedGatedBatchInterface
 
     /** @var EmbedFaker|null The embed faker. */
     public ?EmbedFaker $embedFaker { get; }
+
+    /** @var CredentialsOverride|null The credentials override to use (instead of each model's own credentials). */
+    public ?CredentialsOverride $credentialsOverride { get; }
 
     /** @var integer The debug level. */
     public int $debugLevel { get; }

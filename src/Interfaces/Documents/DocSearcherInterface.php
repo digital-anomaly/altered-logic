@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Interfaces\Documents;
 
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Documents\DocResultSet;
 use DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatchItem;
 use DigitalAnomaly\AlteredLogic\Exceptions\RegistryException;
@@ -99,11 +100,14 @@ interface DocSearcherInterface
      *   - i.e. no duplicates when a document has multiple searchables or types
      * - A ResourceException must be thrown if the resources / tables don't exist (i.e. haven't been initialised).
      *
-     * @param string[]     $categories The categories to search in.
-     * @param string[]     $types      The types of searchables to search against (searches all types by default).
-     * @param string       $source     The search input.
-     * @param integer      $limit      The maximum number of results to return.
-     * @param integer|null $debugLevel The debug level to use: 0 = off, 1 = basic, 2 = verbose, null = use the default.
+     * @param string[]                 $categories          The categories to search in.
+     * @param string[]                 $types               The types of searchables to search against (searches all
+     *                                                      types by default).
+     * @param string                   $source              The search input.
+     * @param integer                  $limit               The maximum number of results to return.
+     * @param integer|null             $debugLevel          The debug level to use: 0 = off, 1 = basic, 2 = verbose,
+     *                                                      null = use the default.
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of each model's own.
      * @return DocResultSet
      * @throws ResourceException If the necessary resources / tables don't exist.
      */
@@ -113,5 +117,6 @@ interface DocSearcherInterface
         string $source,
         int $limit = 20,
         ?int $debugLevel = null,
+        ?CredentialsOverride $credentialsOverride = null,
     ): DocResultSet;
 }

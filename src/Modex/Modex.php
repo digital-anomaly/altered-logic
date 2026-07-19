@@ -6,6 +6,7 @@ namespace DigitalAnomaly\AlteredLogic\Modex;
 
 use CodeDistortion\Backoff\Backoff;
 use DigitalAnomaly\AlteredLogic\Adapters\Resolvers\HttpClientResolver;
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
 use DigitalAnomaly\AlteredLogic\Exceptions\ModexException;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexApiClientInterface;
 use DigitalAnomaly\AlteredLogic\Interfaces\Modex\ModexModelInterface;
@@ -277,9 +278,9 @@ final class Modex
 
 
 
-            $temp = $this->resolveModelProfile()->buildModexApiClient();
+            $temp = $this->resolveModelProfile()->buildModexApiClient($this->credentialsOverride);
             ['apiClient' => $apiClient, 'modexModel' => $modexModel] = $temp;
-            $connectionReference = ModexConnectionReference::fromModexModel($modexModel);
+            $connectionReference = ModexConnectionReference::fromModexModel($modexModel, $this->credentialsOverride);
 
 
 
@@ -397,9 +398,22 @@ final class Modex
 
 
 
+        $modelProvider = $modexModel->getProvider();
+        $provider = $modelProvider instanceof AiProvidersEnum ? $modelProvider->value : $modelProvider;
+        $overrideName = $this->credentialsOverride?->pickCredentialsName($modelProvider);
+        $modelCredentials = $modexModel->getCredentials();
+        $credentialsName = $overrideName
+            ?? ($modelCredentials instanceof AiProvidersEnum ? $modelCredentials->value : $modelCredentials);
+
         $requestBody = $apiClient->buildRequestBody($modexInput, $thread->prevResponseId());
         $debug->showRequestBodyDebug($requestNumber, $requestBody);
-        $debug->showRequestSummaryDebug($requestNumber, $modexInput);
+        $debug->showRequestSummaryDebug(
+            $requestNumber,
+            $modexInput,
+            $credentialsName,
+            $this->credentialsOverride,
+            $provider,
+        );
 
 
 

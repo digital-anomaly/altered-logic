@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Embed;
 
+use DigitalAnomaly\AlteredLogic\Common\Enums\AiProvidersEnum;
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedExecutor;
 use DigitalAnomaly\AlteredLogic\Embed\Internal\EmbedGatedBatch;
@@ -40,6 +42,9 @@ abstract class AbstractEmbed
 
     /** @var EmbedFaker|null The faker to use when generating embeddings. */
     private ?EmbedFaker $faker = null;
+
+    /** @var CredentialsOverride|null The credentials override to use (instead of each model's own credentials). */
+    private ?CredentialsOverride $credentialsOverride = null;
 
 
 
@@ -143,6 +148,26 @@ abstract class AbstractEmbed
 
 
     /**
+     * Specify the credentials to use, overriding each model's configured credentials.
+     *
+     * Composes with model()/modelProfile() - it clears neither. Pass null to clear the override.
+     *
+     * @param CredentialsOverride|string|AiProvidersEnum|array<string,string|AiProvidersEnum>|null $credentials A
+     *        credentials name to use for all providers, or a map of provider name => credentials name. Map values are
+     *        registered credentials names, but map keys are matched against each model's getProvider() value (they're
+     *        not looked up anywhere) - an unrecognised key is ignored silently.
+     * @return $this
+     */
+    public function credentials(CredentialsOverride|string|AiProvidersEnum|array|null $credentials): static
+    {
+        $this->credentialsOverride = CredentialsOverride::from($credentials);
+
+        return $this;
+    }
+
+
+
+    /**
      * Set the debug level to use: 0 = off, 1 = basic, 2 = verbose, null = use the default.
      *
      * @param integer|null $debugLevel The debug level to use: 0 = off, 1 = basic, 2 = verbose, null = use the default.
@@ -229,6 +254,7 @@ abstract class AbstractEmbed
             $this->resolveModelProfile(),
             $this->resolveCacheProfile(),
             $this->faker,
+            $this->credentialsOverride,
             $debugLevel,
         );
 

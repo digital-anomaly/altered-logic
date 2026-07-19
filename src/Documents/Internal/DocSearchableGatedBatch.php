@@ -60,6 +60,7 @@ final class DocSearchableGatedBatch extends AbstractGatedBatch implements
         $this->embedModelProfile = $identity->embedModelProfile;
         $this->embedCacheProfile = $identity->embedCacheProfile;
         $this->embedFaker = $identity->embedFaker;
+        $this->credentialsOverride = $identity->credentialsOverride;
         $this->debugLevel = $identity->embedDebugLevel;
 
         $this->replaceItems($items);

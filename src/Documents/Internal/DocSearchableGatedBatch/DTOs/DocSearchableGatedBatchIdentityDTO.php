@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DigitalAnomaly\AlteredLogic\Documents\Internal\DocSearchableGatedBatch\DTOs;
 
+use DigitalAnomaly\AlteredLogic\Credentials\CredentialsOverride;
 use DigitalAnomaly\AlteredLogic\Embed\EmbedFaker;
 use DigitalAnomaly\AlteredLogic\Interfaces\Documents\DocSearcherInterface;
 use DigitalAnomaly\AlteredLogic\Profiles\DocumentProfile;
@@ -18,13 +19,14 @@ final readonly class DocSearchableGatedBatchIdentityDTO
     /**
      * Constructor.
      *
-     * @param DocumentProfile        $documentProfile   The document profile to use.
-     * @param DocSearcherInterface   $docSearcher       The doc-searcher to store searchables with.
-     * @param EmbedModelProfile|null $embedModelProfile The model profile to use.
-     * @param EmbedCacheProfile|null $embedCacheProfile The cache profile to use.
-     * @param EmbedFaker|null        $embedFaker        The faker to use when generating embeddings.
-     * @param integer                $docDebugLevel     The doc debug level to use.
-     * @param integer                $embedDebugLevel   The embed debug level to use.
+     * @param DocumentProfile          $documentProfile     The document profile to use.
+     * @param DocSearcherInterface     $docSearcher         The doc-searcher to store searchables with.
+     * @param EmbedModelProfile|null   $embedModelProfile   The model profile to use.
+     * @param EmbedCacheProfile|null   $embedCacheProfile   The cache profile to use.
+     * @param EmbedFaker|null          $embedFaker          The faker to use when generating embeddings.
+     * @param CredentialsOverride|null $credentialsOverride The credentials to use instead of each model's own.
+     * @param integer                  $docDebugLevel       The doc debug level to use.
+     * @param integer                  $embedDebugLevel     The embed debug level to use.
      */
     public function __construct(
         public DocumentProfile $documentProfile,
@@ -32,6 +34,7 @@ final readonly class DocSearchableGatedBatchIdentityDTO
         public ?EmbedModelProfile $embedModelProfile,
         public ?EmbedCacheProfile $embedCacheProfile,
         public ?EmbedFaker $embedFaker,
+        public ?CredentialsOverride $credentialsOverride,
         public int $docDebugLevel,
         public int $embedDebugLevel,
     ) {}
@@ -59,11 +62,15 @@ final readonly class DocSearchableGatedBatchIdentityDTO
             ? \spl_object_id($this->embedFaker)
             : '';
 
+        // value-based (not spl_object_id) so identical overrides pool together and different overrides never merge
+        $credentialsOverrideKey = $this->credentialsOverride?->fingerprint() ?? '';
+
         return "{$documentProfileKey}"
             . ":{$docSearcherKey}"
             . ":{$embedModelProfileKey}"
             . ":{$embedCacheProfileKey}"
             . ":{$fakerKey}"
+            . ":{$credentialsOverrideKey}"
             . ":{$this->docDebugLevel}"
             . ":{$this->embedDebugLevel}";
     }

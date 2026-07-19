@@ -261,7 +261,104 @@ return [
 
     'modex_models' => [
 
+        'gpt-5-6-sol' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.6-sol',
+        ],
 
+        'gpt-5-6-terra' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.6-terra',
+        ],
+
+        'gpt-5-6-luna' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.6-luna',
+        ],
+
+        'gpt-5-5-pro' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.5-pro',
+        ],
+
+        'gpt-5-5' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.5',
+        ],
+
+        'gpt-5-4-pro' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.4-pro',
+        ],
+
+        'gpt-5-4' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.4',
+        ],
+
+        'gpt-5-4-mini' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.4-mini',
+        ],
+
+        'gpt-5-4-nano' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.4-nano',
+        ],
+
+        'gpt-5-2-pro' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.2-pro',
+        ],
+
+        'gpt-5-2' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5.2',
+        ],
 
         'gpt-5-1' => [
             'type' => OpenAiModexModel::class,
@@ -270,6 +367,15 @@ return [
             'credentials' => 'openai',
             'custom_headers' => [],
             'model' => 'gpt-5.1',
+        ],
+
+        'gpt-5-pro' => [
+            'type' => OpenAiModexModel::class,
+            'client' => OpenAiResponsesApiClient::class,
+            'url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+            'credentials' => 'openai',
+            'custom_headers' => [],
+            'model' => 'gpt-5-pro',
         ],
 
         'gpt-5' => [
